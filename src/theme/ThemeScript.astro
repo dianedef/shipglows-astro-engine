@@ -1,0 +1,30 @@
+---
+/**
+ * Script anti-flash : à placer tout en haut de <head>.
+ * Applique les choix mémorisés sur <html> avant le premier rendu.
+ */
+import type { ThemeConfig } from "./index";
+
+interface Props {
+  config: ThemeConfig;
+}
+
+const { config } = Astro.props;
+---
+
+<script is:inline define:vars={{ config }}>
+  const root = document.documentElement;
+  for (const [name, axis] of Object.entries(config.axes)) {
+    let value = null;
+    try {
+      value = localStorage.getItem(`${config.storagePrefix}-${name}`);
+    } catch {}
+    if (!axis.values.includes(value)) {
+      value = axis.followSystem
+        ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+        : axis.default;
+    }
+    root.dataset[axis.attribute] = value;
+    if (axis.colorScheme) root.style.colorScheme = value;
+  }
+</script>
