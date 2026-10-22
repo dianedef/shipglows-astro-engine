@@ -54,7 +54,7 @@ Options d'un axe : `followSystem` (suit `prefers-color-scheme` sans choix mémor
 Dépendance git figée sur un commit (fonctionne sur Vercel) :
 
 ```json
-"@shipglows/astro-engine": "git+https://github.com/<owner>/shipglows-astro-engine.git#<commit>"
+"@shipglows/astro-engine": "git+https://github.com/dianedef/shipglows-astro-engine.git#<commit>"
 ```
 
 En développement local, `link:../../shipglows-astro-engine` permet de modifier le kit et le site en même temps.
