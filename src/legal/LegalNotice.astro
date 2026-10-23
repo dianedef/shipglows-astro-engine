@@ -1,0 +1,110 @@
+---
+/**
+ * Mentions légales en HTML sémantique, sans style : éditeur, direction de la publication, hébergeur,
+ * propriété intellectuelle, données personnelles (si `privacyHref` ou slot `personal-data`).
+ * Les champs vides ne sont pas rendus. Classes `sg-legal__*` + `classes` pour l'habillage du site.
+ *
+ * Slots : `intro` (avant les sections), `publisher` et `host` (fin de leur section),
+ * `intellectual-property` et `personal-data` (remplacent le texte par défaut),
+ * slot par défaut (sections propres au site, à la fin : paiements, responsabilité, droit applicable…).
+ */
+import {
+  legalNoticeLabels,
+  legalRows,
+  type LegalIdentity,
+  type LegalNoticeClasses,
+  type LegalNoticeLabels,
+} from "./index";
+
+interface Props {
+  identity: LegalIdentity;
+  /** `fr` par défaut ; toute autre langue prend les textes anglais (surchargeables par `labels`). */
+  locale?: string;
+  labels?: Partial<LegalNoticeLabels>;
+  /** Lien vers la politique de confidentialité ; sans lui (ni slot), pas de section « Données personnelles ». */
+  privacyHref?: string;
+  /** Rend un `<h1>` : `true` pour `labels.title`, ou le texte voulu. */
+  title?: boolean | string;
+  /** Niveau des titres de section ; `2` par défaut. */
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
+  /** Ouvre le site de l'hébergeur dans un nouvel onglet. */
+  newTab?: boolean;
+  class?: string;
+  classes?: LegalNoticeClasses;
+}
+
+const { identity, locale = "fr", privacyHref, title, headingLevel = 2, newTab = false, class: className, classes = {} } = Astro.props;
+const labels = legalNoticeLabels(locale, Astro.props.labels);
+const Heading = `h${headingLevel}`;
+const { publisher, host } = identity;
+const director = identity.publicationDirector ?? publisher?.name;
+const sections = [
+  publisher && { id: "publisher", rows: legalRows(publisher, "publisher", locale, labels) },
+  { id: "host", rows: legalRows(host, "host", locale, labels) },
+];
+const showPersonalData = !!privacyHref || Astro.slots.has("personal-data");
+---
+
+<div class:list={["sg-legal", className]}>
+  {title && <h1 class="sg-legal__title">{title === true ? labels.title : title}</h1>}
+  <slot name="intro" />
+
+  {sections.map((section) => section ? (
+    <section class:list={["sg-legal__section", `sg-legal__section--${section.id}`, classes.section]}>
+      <Heading class:list={["sg-legal__heading", classes.heading]}>
+        {section.id === "publisher" ? labels.publisherHeading : labels.hostHeading}
+      </Heading>
+      <dl class:list={["sg-legal__list", classes.list]}>
+        {section.rows.map((row) => (
+          <div class:list={["sg-legal__row", `sg-legal__row--${row.key}`, classes.row]}>
+            <dt class:list={["sg-legal__term", classes.term]}>{row.label}</dt>
+            <dd class:list={["sg-legal__value", classes.value]}>
+              {row.href ? (
+                <a
+                  class:list={["sg-legal__link", classes.link]}
+                  href={row.href}
+                  rel={row.external ? "noopener noreferrer" : undefined}
+                  target={row.external && newTab ? "_blank" : undefined}
+                >{row.lines[0]}</a>
+              ) : row.lines.map((line, index) => <>{index > 0 && <br />}{line}</>)}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {section.id === "publisher" ? <slot name="publisher" /> : <slot name="host" />}
+    </section>
+  ) : (
+    <section class:list={["sg-legal__section", "sg-legal__section--publisher", classes.section]}>
+      <Heading class:list={["sg-legal__heading", classes.heading]}>{labels.publisherHeading}</Heading>
+      <p class:list={["sg-legal__text", "sg-legal__text--pending", classes.text]}>{labels.publisherPending}</p>
+      <slot name="publisher" />
+    </section>
+  ))}
+
+  {director && (
+    <section class:list={["sg-legal__section", "sg-legal__section--director", classes.section]}>
+      <Heading class:list={["sg-legal__heading", classes.heading]}>{labels.directorHeading}</Heading>
+      <p class:list={["sg-legal__text", classes.text]}>{director}</p>
+    </section>
+  )}
+
+  <section class:list={["sg-legal__section", "sg-legal__section--intellectual-property", classes.section]}>
+    <Heading class:list={["sg-legal__heading", classes.heading]}>{labels.ipHeading}</Heading>
+    <slot name="intellectual-property">
+      <p class:list={["sg-legal__text", classes.text]}>{labels.ipText(identity.siteName)}</p>
+    </slot>
+  </section>
+
+  {showPersonalData && (
+    <section class:list={["sg-legal__section", "sg-legal__section--personal-data", classes.section]}>
+      <Heading class:list={["sg-legal__heading", classes.heading]}>{labels.dataHeading}</Heading>
+      <slot name="personal-data">
+        <p class:list={["sg-legal__text", classes.text]}>
+          {labels.dataBefore} <a class:list={["sg-legal__link", classes.link]} href={privacyHref}>{labels.dataLink}</a>{labels.dataAfter}
+        </p>
+      </slot>
+    </section>
+  )}
+
+  <slot />
+</div>

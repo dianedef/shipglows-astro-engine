@@ -196,6 +196,52 @@ Slots : `head`, `before`, `avatar`, `eyebrow`, défaut (texte après l'accroche)
 
 Pour un site multilingue, passer `lang`, les textes traduits et `alternates` ; `export const prerender = true` reste dans la page du site.
 
+## Mentions légales (`/legal`)
+
+Mentions obligatoires (LCEN, art. 6-III) : éditeur, direction de la publication, hébergeur, propriété intellectuelle, lien vers la politique de confidentialité. Textes fr/en fournis ; **l'identité (SIRET, adresse, téléphone) reste dans le site**, jamais dans ce repo public.
+
+```ts
+// src/config/legal.ts
+import { defineLegalIdentity, telHref, vercelHost } from "@shipglows/astro-engine/legal";
+
+export const legalIdentity = defineLegalIdentity({
+  siteName: "MonSite",
+  publisher: {
+    name: "Camille Exemple",
+    status: { fr: "Entrepreneur individuel (EI)", en: "Sole proprietor (French EI)" }, // ou une seule chaîne
+    siret: "000 000 000 00000",
+    address: "1 rue de l'Exemple, 75000 Paris, France", // ou un tableau de lignes
+    phone: "+33 1 00 00 00 00",
+    phoneHref: telHref("+33 1 00 00 00 00"), // optionnel : sans lui, numéro non cliquable
+    email: "contact@monsite.fr" // optionnel : ligne « Contact » en mailto
+  },
+  publicationDirector: "Camille Exemple", // défaut : nom de l'éditeur
+  host: vercelHost
+});
+```
+
+```astro
+---
+import LegalNotice from "@shipglows/astro-engine/legal/LegalNotice.astro";
+import { legalIdentity } from "../config/legal";
+---
+<LegalNotice identity={legalIdentity} locale="fr" privacyHref="/confidentialite" class="legal-content">
+  <section>
+    <h2>Responsabilité</h2>   <!-- sections propres au site : slot par défaut, à la fin -->
+    <p>…</p>
+  </section>
+</LegalNotice>
+```
+
+- Champs vides ou absents non rendus ; `companyNumber`, `vatNumber`, `urlLabel` disponibles. `defineLegalIdentity` vérifie noms, SIRET à 14 chiffres et `phoneHref` en `tel:`.
+- `publisher: null` (identité pas encore validée) : la section affiche `labels.publisherPending`, sans direction de la publication.
+- Libellés surchargeables (`labels={{ directorHeading: "Directeur de la publication" }}`) ; une langue autre que `fr` prend l'anglais, à compléter par `labels` (ex. `es`). `legalNoticeLabels(locale)` donne aussi `title` pour le `<title>` de la page.
+- Pour un rendu maison (table, liste), `legalRows(party, "publisher" | "host", locale)` donne les lignes non vides `{ key, label, lines, href, external }`.
+
+Props : `identity`, `locale` (défaut `fr`), `labels`, `privacyHref` (sans lui ni slot, pas de section « Données personnelles »), `title` (`true` ou texte : rend un `<h1>`), `headingLevel` (défaut `2`), `newTab` (site de l'hébergeur), `class`, `classes` (`section`, `heading`, `list`, `row`, `term`, `value`, `text`, `link`, ex. utilitaires Tailwind).
+
+Slots : `intro`, `publisher` et `host` (fin de leur section), `intellectual-property` et `personal-data` (remplacent le texte par défaut), défaut (sections du site, à la fin). Classes posées : `sg-legal`, `__title`, `__section` (+ `--publisher`, `--host`, `--director`, `--intellectual-property`, `--personal-data`), `__heading`, `__list`, `__row` (+ `--name`, `--siret`…), `__term`, `__value`, `__link`, `__text`. Chaque ligne est un `<div>` dans le `<dl>` : pour une grille `dt`/`dd` sur le `<dl>`, donner `display: contents` aux lignes. Aucun style fourni.
+
 ## Installation dans un site
 
 Dépendance git figée sur un commit (fonctionne sur Vercel) :

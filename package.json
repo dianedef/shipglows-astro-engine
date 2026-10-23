@@ -16,7 +16,9 @@
     "./breadcrumbs": "./src/breadcrumbs/index.ts",
     "./breadcrumbs/Breadcrumbs.astro": "./src/breadcrumbs/Breadcrumbs.astro",
     "./bio": "./src/bio/index.ts",
-    "./bio/BioPage.astro": "./src/bio/BioPage.astro"
+    "./bio/BioPage.astro": "./src/bio/BioPage.astro",
+    "./legal": "./src/legal/index.ts",
+    "./legal/LegalNotice.astro": "./src/legal/LegalNotice.astro"
   },
   "files": [
     "src"
