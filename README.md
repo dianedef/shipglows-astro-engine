@@ -242,6 +242,89 @@ Props : `identity`, `locale` (défaut `fr`), `labels`, `privacyHref` (sans lui n
 
 Slots : `intro`, `publisher` et `host` (fin de leur section), `intellectual-property` et `personal-data` (remplacent le texte par défaut), défaut (sections du site, à la fin). Classes posées : `sg-legal`, `__title`, `__section` (+ `--publisher`, `--host`, `--director`, `--intellectual-property`, `--personal-data`), `__heading`, `__list`, `__row` (+ `--name`, `--siret`…), `__term`, `__value`, `__link`, `__text`. Chaque ligne est un `<div>` dans le `<dl>` : pour une grille `dt`/`dd` sur le `<dl>`, donner `display: contents` aux lignes. Aucun style fourni.
 
+## i18n (`/i18n`)
+
+Langue courante, chemins par langue, alternates hreflang et sélecteur de langue. Les traductions de contenu (textes d'interface, articles) restent dans le site. Aucune convention d'URL imposée : préfixe ou non de la langue par défaut, slugs traduits, sections partagées, `x-default`.
+
+```ts
+// src/i18n.config.ts
+import { defineI18nConfig } from "@shipglows/astro-engine/i18n";
+
+export const i18n = defineI18nConfig({
+  locales: { en: {}, fr: { hreflang: "fr", intl: "fr-BE" } },
+  defaultLocale: "en",              // en sans préfixe, fr sous /fr
+  routes: [                         // slugs traduits, chemins complets
+    { en: "/", fr: "/fr" },
+    { en: "/privacy", fr: "/fr/confidentialite" },
+    { en: "/blog", fr: "/blog/fr" },
+  ],
+  sharedPaths: ["/features", "/pricing"], // même slug dans toutes les langues ; défaut : tous
+});
+```
+
+```astro
+---
+import LanguageSelector from "@shipglows/astro-engine/i18n/LanguageSelector.astro";
+import { alternates, localeFromPath, localeInfo, localeLinks } from "@shipglows/astro-engine/i18n";
+import { i18n } from "../i18n.config";
+
+const locale = localeFromPath(i18n, Astro.url.pathname);
+const others = localeLinks(i18n, Astro.url.pathname).filter((link) => link.translated && !link.current);
+---
+<html lang={localeInfo(i18n, locale).lang}>
+  <head>
+    {alternates(i18n, Astro.url.pathname, { site: Astro.site }).map(({ hreflang, href }) => (
+      <link rel="alternate" hreflang={hreflang} href={href} />
+    ))}
+    <meta property="og:locale" content={localeInfo(i18n, locale).ogLocale} />
+    {others.map((link) => <meta property="og:locale:alternate" content={link.ogLocale} />)}
+  </head>
+  …
+  <LanguageSelector config={i18n} label="Langue" display="code" linkClass="site-lang-link" />
+```
+
+Articles dont la traduction vient du frontmatter (`alternateSlug`, `contentId`) : passer `locale` et `translations`, qui font alors foi.
+
+```ts
+alternates(i18n, Astro.url.pathname, { locale: "fr", translations: { en: "/blog/my-post" }, site: Astro.site });
+```
+
+Helpers (tous purs, `config` en premier argument) :
+
+| Fonction | Rôle |
+| --- | --- |
+| `localeFromPath` / `localeFromUrl` | Langue d'un chemin (paire `routes`, puis préfixe, sinon défaut) ; `localeFromUrl` lit aussi `?<queryParam>=` |
+| `parsePath` / `stripLocale` | Chemin sans préfixe, suffixe `?…#…` conservé ; `unknownLocale` signale un `/de/…` non configuré |
+| `localizedPath` | Lien vers une langue (paire, sinon préfixe) ; externes, ancres et `/api` inchangés |
+| `translatePath` | Équivalent réel de la page dans une langue, ou `null` |
+| `localeLinks` | Un lien par langue publiée (`current`, `translated`, libellé, hreflang, og:locale) |
+| `alternates` / `sitemapLinks` | `hreflang` + `x-default`, vide si la page n'a qu'une langue ; format `@astrojs/sitemap` |
+| `localizedPaths` | Toutes les variantes de chemins (`customPages` du sitemap) |
+| `rewritePath` | Pour un middleware qui sert `/en/carte` avec la page `/carte` : cible de `context.rewrite()` ou `null` |
+| `matchLocale` / `normalizeLocale` | `en-US`, `fr_BE`, frontmatter → langue (ou défaut) |
+| `pickLocalized` | Valeur `{ fr, en }` dans la langue voulue, repli défaut puis première non vide |
+| `reservedRoots` | Préfixes de langue et racines non localisées, à refuser comme slug |
+
+Options de config : `prefixDefaultLocale` (langue par défaut aussi préfixée, les chemins sans préfixe lui restent attribués), `published` (langues exposées), `xDefault` (langue ou `false`), `trailingSlash` (`never` par défaut, `always`), `unlocalizedPaths` (défaut `/api`, `/_astro`), `queryParam`, `notLocales`. Par langue : `prefix`, `hreflang`, `lang`, `ogLocale`, `label`, `intl` (défauts tirés du code).
+
+Middleware de réécriture (une page pour toutes les langues) :
+
+```ts
+import { defineMiddleware } from "astro:middleware";
+import { localeFromPath, rewritePath } from "@shipglows/astro-engine/i18n";
+import { i18n } from "./i18n.config";
+
+export const onRequest = defineMiddleware((context, next) => {
+  context.locals.locale = localeFromPath(i18n, context.url.pathname);
+  const target = rewritePath(i18n, context.url.pathname, { paths: ["/", "/parcours/*"] });
+  return target ? context.rewrite(new URL(`${target}${context.url.search}`, context.url)) : next();
+});
+```
+
+### Sélecteur (`LanguageSelector.astro`)
+
+`<nav aria-label><ul><li><a hreflang lang>` sans style ; masqué s'il n'y a pas d'autre langue. Props : `config`, `path` (défaut URL courante), `locale`, `translations`, `fallback` (`home` : lien vers l'accueil de la langue sans traduction, défaut ; `hide`), `showCurrent` (`aria-current="page"`), `display` (`label` « English » ou `code` « EN »), `label` (sans lui, seule la `<ul>` est rendue), `linkLabel`, `linkTitle`, `class`, `listClass`, `itemClass`, `linkClass`. Contenu sur mesure : une fonction en enfant, `{(link) => <span>{link.label}</span>}`.
+
 ## Installation dans un site
 
 Dépendance git figée sur un commit (fonctionne sur Vercel) :

@@ -1,0 +1,97 @@
+---
+/**
+ * Sélecteur de langue sans style : `<nav><ul><li><a hreflang lang>`, le site fournit les classes.
+ *
+ * Contenu d'un lien : par défaut le libellé (« English ») ou le code (`display="code"` → « EN »).
+ * Pour un rendu sur mesure, passer une fonction en enfant : `{(link) => <span>{link.label}</span>}`.
+ */
+import { localeLinks, type I18nConfig, type LocaleLink } from "./index";
+
+interface Props {
+  config: I18nConfig;
+  /** Chemin de la page ; par défaut l'URL courante. */
+  path?: string;
+  /** Langue de la page, si elle ne se déduit pas du chemin. */
+  locale?: string;
+  /** Traductions connues de la page (articles) ; si fourni, fait foi. */
+  translations?: Record<string, string | null | undefined>;
+  /** Langues sans traduction : `home` (lien vers leur accueil, défaut) ou `hide`. */
+  fallback?: "home" | "hide";
+  /** Afficher aussi la langue courante (`aria-current="page"`). Par défaut non. */
+  showCurrent?: boolean;
+  display?: "label" | "code";
+  /** Nom accessible du `<nav>` ; sans lui, seule la liste est rendue. */
+  label?: string;
+  /** Nom accessible d'un lien, ex. `(link) => \`Passer en ${link.label}\``. */
+  linkLabel?: (link: LocaleLink) => string;
+  linkTitle?: (link: LocaleLink) => string;
+  class?: string;
+  listClass?: string;
+  itemClass?: string;
+  linkClass?: string;
+}
+
+const {
+  config,
+  path = Astro.url.pathname,
+  locale,
+  translations,
+  fallback = "home",
+  showCurrent = false,
+  display = "label",
+  label,
+  linkLabel,
+  linkTitle,
+  class: className,
+  listClass,
+  itemClass,
+  linkClass,
+} = Astro.props;
+
+const links = localeLinks(config, path, { locale, translations: translations as Record<string, string | null> | undefined })
+  .filter((link) => (link.current ? showCurrent : link.translated || fallback === "home"));
+const customContent = Astro.slots.has("default");
+const contents = await Promise.all(
+  links.map((link) => (customContent ? Astro.slots.render("default", [link]) : undefined)),
+);
+const text = (link: LocaleLink) => (display === "code" ? (link.prefix || link.code).toUpperCase() : link.label);
+const hasOthers = links.some((link) => !link.current);
+---
+
+{hasOthers && (
+  label ? (
+    <nav aria-label={label} class={className}>
+      <ul class={listClass}>
+        {links.map((link, index) => (
+          <li class={itemClass}>
+            <a
+              href={link.href}
+              hreflang={link.hreflang}
+              lang={link.lang}
+              aria-current={link.current ? "page" : undefined}
+              aria-label={linkLabel?.(link)}
+              title={linkTitle?.(link)}
+              class={linkClass}
+            >{customContent ? <Fragment set:html={contents[index]} /> : text(link)}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  ) : (
+    <ul class:list={[className, listClass]}>
+      {links.map((link, index) => (
+        <li class={itemClass}>
+          <a
+            href={link.href}
+            hreflang={link.hreflang}
+            lang={link.lang}
+            aria-current={link.current ? "page" : undefined}
+            aria-label={linkLabel?.(link)}
+            title={linkTitle?.(link)}
+            class={linkClass}
+          >{customContent ? <Fragment set:html={contents[index]} /> : text(link)}</a>
+        </li>
+      ))}
+    </ul>
+  )
+)}
