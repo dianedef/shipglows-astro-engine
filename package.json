@@ -1,16 +1,22 @@
 {
   "name": "@shipglows/astro-engine",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Logique partagée et sans style pour les sites Astro ShipGlows.",
   "private": true,
   "type": "module",
-  "keywords": ["astro", "astro-component"],
+  "keywords": [
+    "astro",
+    "astro-component"
+  ],
   "exports": {
     "./theme": "./src/theme/index.ts",
     "./theme/client": "./src/theme/client.ts",
-    "./theme/ThemeScript.astro": "./src/theme/ThemeScript.astro"
+    "./theme/ThemeScript.astro": "./src/theme/ThemeScript.astro",
+    "./theme/ThemeToggle.astro": "./src/theme/ThemeToggle.astro"
   },
-  "files": ["src"],
+  "files": [
+    "src"
+  ],
   "peerDependencies": {
     "astro": ">=5"
   }

@@ -53,6 +53,47 @@ Options d'un axe :
 - `followSystem` : sans choix mémorisé, suit `prefers-color-scheme`, y compris quand le réglage système change en direct.
 - `colorScheme` : recopie la valeur dans `color-scheme`.
 
+### Bouton clair/sombre prêt à l'emploi (`ThemeToggle.astro`)
+
+HTML accessible (`aria-pressed`, nom accessible, focus visible), icônes synchronisées sans flash au chargement, animations coupées si l'utilisateur réduit les mouvements. Le style par défaut suit `currentColor` ; chaque site l'habille par variables CSS.
+
+```astro
+---
+import ThemeToggle from "@shipglows/astro-engine/theme/ThemeToggle.astro";
+import { themeConfig } from "../theme.config";
+---
+<ThemeToggle config={themeConfig} label="Mode sombre" class="site-theme-toggle">
+  <MoonIcon slot="icon-off" />   <!-- optionnel : icônes du site -->
+  <SunIcon slot="icon-on" />
+</ThemeToggle>
+
+<style is:global>
+  .site-theme-toggle {
+    --sg-theme-toggle-size: 2.5rem;
+    --sg-theme-toggle-radius: 0.75rem;
+    --sg-theme-toggle-bg: var(--surface);
+    --sg-theme-toggle-border: 1px solid var(--border);
+  }
+</style>
+```
+
+Props : `config`, `label`, `axis` (défaut `theme`), `pressedValue` (défaut `dark`), `title`, `class`.
+
+| Variable | Défaut |
+| --- | --- |
+| `--sg-theme-toggle-size` | `2.75rem` (44 px) |
+| `--sg-theme-toggle-icon-size` | `1.25rem` |
+| `--sg-theme-toggle-radius` | `999px` |
+| `--sg-theme-toggle-bg` / `-color` | `transparent` / `currentColor` |
+| `--sg-theme-toggle-border` | `1px solid` currentColor à 24 % |
+| `--sg-theme-toggle-shadow` | `none` |
+| `--sg-theme-toggle-hover-bg` / `-hover-color` / `-hover-border-color` | repos / repos / `currentColor` |
+| `--sg-theme-toggle-hover-lift` | `0` (ex. `-1px`) |
+| `--sg-theme-toggle-focus-ring` / `-focus-offset` | `2px solid currentColor` / `2px` |
+| `--sg-theme-toggle-duration` | `160ms` |
+
+Les règles du kit sont dans `:where()` (spécificité nulle) : toute règle du site les remplace.
+
 ## Installation dans un site
 
 Dépendance git figée sur un commit (fonctionne sur Vercel) :
