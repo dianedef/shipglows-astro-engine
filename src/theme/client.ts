@@ -1,4 +1,4 @@
-import { storageKey, type ThemeConfig } from "./index";
+import { applyThemeAxis, storageKey, type ThemeConfig } from "./index";
 
 /**
  * Contrôles sans style : chaque site garde son HTML et son CSS, il ajoute seulement ces attributs.
@@ -29,24 +29,45 @@ export function bindThemeControls(config: ThemeConfig, scope: ParentNode = docum
 
   const sync = () => syncThemeControls(config, scope);
   document.addEventListener("shipglows:theme-change", sync);
+  watchSystemScheme(config, sync);
   sync();
 }
 
 export function getThemeAxis(config: ThemeConfig, axisName: string): string {
   const axis = config.axes[axisName];
-  return document.documentElement.dataset[axis.attribute] ?? axis.default;
+  const root = document.documentElement;
+  if (axis.attribute) return root.dataset[axis.attribute] ?? axis.default;
+
+  const classes = axis.classes ?? {};
+  const active = Object.keys(classes).find((value) => root.classList.contains(classes[value]));
+  return active ?? axis.values.find((value) => !(value in classes)) ?? axis.default;
 }
 
 export function setThemeAxis(config: ThemeConfig, axisName: string, value: string): void {
   const axis = config.axes[axisName];
   const next = axis.values.includes(value) ? value : axis.default;
-  const root = document.documentElement;
-  root.dataset[axis.attribute] = next;
-  if (axis.colorScheme) root.style.colorScheme = next;
+  applyThemeAxis(document.documentElement, axis, next);
   try {
     localStorage.setItem(storageKey(config, axisName), next);
   } catch {}
   document.dispatchEvent(new CustomEvent("shipglows:theme-change", { detail: { axis: axisName, value: next } }));
+}
+
+/** Sans choix mémorisé, un axe `followSystem` suit les changements du réglage système en direct. */
+function watchSystemScheme(config: ThemeConfig, onChange: () => void): void {
+  const media = window.matchMedia("(prefers-color-scheme: dark)");
+  media.addEventListener("change", (event) => {
+    for (const [name, axis] of Object.entries(config.axes)) {
+      if (!axis.followSystem) continue;
+      let saved: string | null = null;
+      try {
+        saved = localStorage.getItem(storageKey(config, name));
+      } catch {}
+      if (saved && axis.values.includes(saved)) continue;
+      applyThemeAxis(document.documentElement, axis, event.matches ? "dark" : "light");
+    }
+    onChange();
+  });
 }
 
 function nextValue(config: ThemeConfig, axisName: string): string {

@@ -47,7 +47,11 @@ import { themeConfig } from "../theme.config";
 </script>
 ```
 
-Options d'un axe : `followSystem` (suit `prefers-color-scheme` sans choix mémorisé), `colorScheme` (recopie dans `color-scheme`).
+Options d'un axe :
+
+- `attribute` et/ou `classes` : où poser la valeur sur `<html>`. Pour Tailwind (`dark:`), `classes: { dark: "dark" }` suffit.
+- `followSystem` : sans choix mémorisé, suit `prefers-color-scheme`, y compris quand le réglage système change en direct.
+- `colorScheme` : recopie la valeur dans `color-scheme`.
 
 ## Installation dans un site
 

@@ -1,6 +1,6 @@
 {
   "name": "@shipglows/astro-engine",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Logique partagée et sans style pour les sites Astro ShipGlows.",
   "private": true,
   "type": "module",

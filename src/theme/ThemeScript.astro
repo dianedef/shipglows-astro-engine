@@ -24,7 +24,10 @@ const { config } = Astro.props;
         ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
         : axis.default;
     }
-    root.dataset[axis.attribute] = value;
+    if (axis.attribute) root.dataset[axis.attribute] = value;
+    for (const [axisValue, className] of Object.entries(axis.classes ?? {})) {
+      root.classList.toggle(className, axisValue === value);
+    }
     if (axis.colorScheme) root.style.colorScheme = value;
   }
 </script>
