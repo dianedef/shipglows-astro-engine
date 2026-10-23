@@ -12,7 +12,9 @@
     "./theme": "./src/theme/index.ts",
     "./theme/client": "./src/theme/client.ts",
     "./theme/ThemeScript.astro": "./src/theme/ThemeScript.astro",
-    "./theme/ThemeToggle.astro": "./src/theme/ThemeToggle.astro"
+    "./theme/ThemeToggle.astro": "./src/theme/ThemeToggle.astro",
+    "./breadcrumbs": "./src/breadcrumbs/index.ts",
+    "./breadcrumbs/Breadcrumbs.astro": "./src/breadcrumbs/Breadcrumbs.astro"
   },
   "files": [
     "src"

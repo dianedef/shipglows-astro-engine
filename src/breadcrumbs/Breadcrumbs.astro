@@ -1,0 +1,82 @@
+---
+/**
+ * Fil d'Ariane sans style : `<nav aria-label>` + `<ol>`, dernière étape en `aria-current="page"`,
+ * et le JSON-LD `BreadcrumbList` (URL absolues depuis `Astro.site`) tiré des mêmes étapes.
+ *
+ * Slot `separator` (ou prop `separator`) : rendu entre deux étapes, masqué aux lecteurs d'écran.
+ * Sans séparateur, le site le dessine en CSS (`li + li::before`).
+ */
+import { breadcrumbJsonLd, serializeJsonLd, type BreadcrumbItem } from "./index";
+
+interface Props {
+  items: BreadcrumbItem[];
+  /** Nom accessible du `<nav>` ; par défaut « Fil d'Ariane ». */
+  label?: string;
+  /** Séparateur texte ; le slot `separator` a priorité. */
+  separator?: string;
+  /** Nombre d'étapes en dessous duquel rien n'est rendu (ni HTML ni JSON-LD) ; par défaut 1. */
+  minItems?: number;
+  /** Émettre le JSON-LD ; par défaut `true` (jamais sous 2 étapes, minimum de Google). */
+  jsonLd?: boolean;
+  /** Base des URL absolues du JSON-LD ; par défaut `Astro.site`. */
+  site?: URL | string;
+  class?: string;
+  listClass?: string;
+  itemClass?: string;
+  linkClass?: string;
+  currentClass?: string;
+  separatorClass?: string;
+}
+
+const {
+  items,
+  label = "Fil d'Ariane",
+  separator,
+  minItems = 1,
+  jsonLd = true,
+  site = Astro.site,
+  class: className,
+  listClass,
+  itemClass,
+  linkClass,
+  currentClass,
+  separatorClass,
+} = Astro.props;
+
+const visible = items.length >= minItems && items.length > 0;
+const separatorHtml = Astro.slots.has("separator") ? await Astro.slots.render("separator") : undefined;
+const hasSeparator = separatorHtml !== undefined || separator !== undefined;
+const schema =
+  visible && jsonLd && items.length >= 2 ? serializeJsonLd(breadcrumbJsonLd(items, { site, currentUrl: Astro.url })) : undefined;
+---
+
+{visible && (
+  <nav class:list={["sg-breadcrumbs", className]} aria-label={label}>
+    <ol class:list={["sg-breadcrumbs__list", listClass]}>
+      {items.map((item, index) => {
+        const isLast = index === items.length - 1;
+        return (
+          <li class:list={["sg-breadcrumbs__item", itemClass]}>
+            {isLast ? (
+              <span class:list={["sg-breadcrumbs__current", currentClass]} aria-current="page">
+                {item.label}
+              </span>
+            ) : !item.href ? (
+              <span class="sg-breadcrumbs__text">{item.label}</span>
+            ) : (
+              <a class:list={["sg-breadcrumbs__link", linkClass]} href={item.href}>
+                {item.label}
+              </a>
+            )}
+            {!isLast && hasSeparator && (
+              <span class:list={["sg-breadcrumbs__separator", separatorClass]} aria-hidden="true">
+                {separatorHtml !== undefined ? <Fragment set:html={separatorHtml} /> : separator}
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  </nav>
+)}
+{schema && <script is:inline type="application/ld+json" set:html={schema} />}
