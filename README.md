@@ -144,6 +144,58 @@ const schema = breadcrumbJsonLd(items, { site: Astro.site, currentUrl: Astro.url
 
 Un site doit retirer son ancien `BreadcrumbList` en l'adoptant, sinon Google en voit deux.
 
+## Page bio (`/bio`)
+
+Page « link-in-bio » autonome (document HTML complet, sans le layout du site) : `<head>` SEO (canonical, hreflang, Open Graph, Twitter), `robots` à `noindex, follow` par défaut, avatar, titre, accroche, liens, icônes de réseaux, pied de page « © année ». Les liens et textes restent dans le site ; aucun style.
+
+```ts
+// src/data/bio.ts
+import { defineBioLinks } from "@shipglows/astro-engine/bio";
+
+export const bio = defineBioLinks({
+  links: [
+    { label: "Accueil", href: "https://www.monsite.fr", class: "bio-link" },
+    { label: "Découvre les parcours", href: "https://www.monsite.fr/parcours", class: "bio-link cta", featured: true }
+  ],
+  socials: [
+    { label: "Twitter / X", href: "https://x.com/monsite", icon: "x" },
+    { label: "Mastodon", href: "https://mastodon.social/@monsite", iconPath: "M…" } // tracé SVG 24×24
+  ]
+});
+```
+
+```astro
+---
+// src/pages/bio.astro
+import BioPage from "@shipglows/astro-engine/bio/BioPage.astro";
+import { bio } from "../data/bio";
+---
+<BioPage
+  title="MonSite | Liens"
+  description="…"
+  name="MonSite"
+  tagline="…"
+  data={bio}
+  siteName="MonSite"
+  image={{ src: "https://www.monsite.fr/og-image.png", width: 1200, height: 630 }}
+  avatar={{ src: "/logo.webp", alt: "MonSite", width: 80, height: 80 }}
+  copyright="MonSite"
+  classes={{ body: "bio-page", main: "bio-container", avatar: "bio-avatar", name: "bio-name", tagline: "bio-tagline", links: "bio-links", socials: "bio-socials", footer: "bio-footer" }}
+>
+  <Fragment slot="head"><link rel="stylesheet" href="…" /></Fragment>
+  <QuickExit slot="before" />
+</BioPage>
+<style is:global>/* le CSS bio du site, inchangé */</style>
+```
+
+`defineBioLinks` vérifie libellés, URL et icônes. Icônes fournies (`icon`) : `x`, `linkedin`, `instagram`, `youtube`, `github`. Les liens restent dans le même onglet sauf `newTab: true` ; les réseaux s'ouvrent toujours dans un nouvel onglet ; tout nouvel onglet reçoit `rel="noopener noreferrer"`.
+
+Props : `title`, `description`, `name`, `data`, `tagline`, `eyebrow`, `lang` (défaut `fr`), `ogLocale` (déduite de `lang`), `siteName`, `author`, `canonical` (défaut `Astro.site` + chemin), `alternates` (`[{ hreflang, href }]`), `image` (`{ src, width, height, alt }` ; sans image, carte Twitter `summary`), `avatar`, `copyright`, `robots` (défaut `noindex, follow`), `linksLabel`, `socialsLabel`, `classes`, `htmlAttributes` (ex. `themeAttributes(config)`), `bodyAttributes` (ex. `style`).
+
+Slots : `head`, `before`, `avatar`, `eyebrow`, défaut (texte après l'accroche), `links` et `socials` (remplacent le rendu fourni, ex. avec le composant bouton du site et `bioLinkAttributes(link)`), `footer`, `after` (scripts). Classes posées : `sg-bio`, `__main`, `__avatar`, `__eyebrow`, `__name`, `__tagline`, `__links`, `__link`, `__link--featured` (+ `data-featured`), `__socials`, `__social`, `__footer`. Seule règle du kit : listes sans puces, dans `:where()`.
+
+Pour un site multilingue, passer `lang`, les textes traduits et `alternates` ; `export const prerender = true` reste dans la page du site.
+
 ## Installation dans un site
 
 Dépendance git figée sur un commit (fonctionne sur Vercel) :

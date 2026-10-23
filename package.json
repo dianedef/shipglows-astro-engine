@@ -14,7 +14,9 @@
     "./theme/ThemeScript.astro": "./src/theme/ThemeScript.astro",
     "./theme/ThemeToggle.astro": "./src/theme/ThemeToggle.astro",
     "./breadcrumbs": "./src/breadcrumbs/index.ts",
-    "./breadcrumbs/Breadcrumbs.astro": "./src/breadcrumbs/Breadcrumbs.astro"
+    "./breadcrumbs/Breadcrumbs.astro": "./src/breadcrumbs/Breadcrumbs.astro",
+    "./bio": "./src/bio/index.ts",
+    "./bio/BioPage.astro": "./src/bio/BioPage.astro"
   },
   "files": [
     "src"

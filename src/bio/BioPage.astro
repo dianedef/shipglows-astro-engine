@@ -1,0 +1,184 @@
+---
+/**
+ * Page « link-in-bio » complète (document HTML autonome, sans layout du site) :
+ * <head> SEO avec `noindex, follow` par défaut, avatar, titre, liens, réseaux, pied de page.
+ * Aucun style : chaque élément porte une classe `sg-bio__*` plus celles que le site passe dans `classes`.
+ *
+ * Slots : `head` (polices, CSS, ThemeScript…), `before` (ex. sortie rapide), `avatar`, `eyebrow`,
+ * défaut (texte après l'accroche), `links` et `socials` (remplacent le rendu fourni),
+ * `footer`, `after` (scripts en fin de <body>).
+ */
+import { BIO_ROBOTS, bioIconPath, bioLinkAttributes, ogLocaleFor, type BioLinks } from "./index";
+
+type BioPart = "body" | "main" | "avatar" | "eyebrow" | "name" | "tagline" | "links" | "link" | "socials" | "social" | "footer";
+
+interface Props {
+  /** `<title>` et titres OG / Twitter. */
+  title: string;
+  description: string;
+  /** Titre visible (h1), ex. le nom du site. */
+  name: string;
+  tagline?: string;
+  eyebrow?: string;
+  data: BioLinks;
+  lang?: string;
+  /** Par défaut déduite de `lang` (`fr` → `fr_FR`). */
+  ogLocale?: string;
+  siteName?: string;
+  author?: string;
+  /** URL canonique absolue ; par défaut `Astro.site` + chemin courant. */
+  canonical?: string;
+  alternates?: { hreflang: string; href: string }[];
+  /** Image OG absolue ; sans image, la carte Twitter passe en `summary`. */
+  image?: { src: string; width?: number; height?: number; alt?: string };
+  avatar?: { src: string; alt: string; width?: number; height?: number };
+  /** Texte après « © année », ex. le nom du site. L'année est celle du build. */
+  copyright?: string;
+  /** Défaut `noindex, follow`. */
+  robots?: string;
+  /** Noms accessibles de la liste de liens et de la liste de réseaux. */
+  linksLabel?: string;
+  socialsLabel?: string;
+  /** Classes du site ajoutées aux classes `sg-bio__*`. */
+  classes?: Partial<Record<BioPart, string>>;
+  /** Attributs ajoutés à <html> (ex. `themeAttributes(config)`) et à <body> (ex. `style`). */
+  htmlAttributes?: Record<string, string>;
+  bodyAttributes?: Record<string, string>;
+}
+
+const {
+  title,
+  description,
+  name,
+  tagline,
+  eyebrow,
+  data,
+  lang = "fr",
+  siteName,
+  author,
+  alternates = [],
+  image,
+  avatar,
+  copyright,
+  robots = BIO_ROBOTS,
+  linksLabel,
+  socialsLabel,
+  classes = {},
+  htmlAttributes = {},
+  bodyAttributes = {}
+} = Astro.props;
+
+const ogLocale = Astro.props.ogLocale ?? ogLocaleFor(lang);
+const canonical = Astro.props.canonical ?? (Astro.site ? new URL(Astro.url.pathname, Astro.site).href : undefined);
+const socials = data.socials ?? [];
+const year = new Date().getFullYear();
+const hasAvatar = Boolean(avatar) || Astro.slots.has("avatar");
+const hasEyebrow = Boolean(eyebrow) || Astro.slots.has("eyebrow");
+---
+
+<!doctype html>
+<html lang={lang} {...htmlAttributes}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {author && <meta name="author" content={author} />}
+    <meta name="robots" content={robots} />
+    {canonical && <link rel="canonical" href={canonical} />}
+    {alternates.map((alternate) => <link rel="alternate" hreflang={alternate.hreflang} href={alternate.href} />)}
+
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {canonical && <meta property="og:url" content={canonical} />}
+    <meta property="og:type" content="website" />
+    {siteName && <meta property="og:site_name" content={siteName} />}
+    {ogLocale && <meta property="og:locale" content={ogLocale} />}
+    {image && <meta property="og:image" content={image.src} />}
+    {image?.width && <meta property="og:image:width" content={String(image.width)} />}
+    {image?.height && <meta property="og:image:height" content={String(image.height)} />}
+    {image && <meta property="og:image:alt" content={image.alt ?? title} />}
+
+    <meta name="twitter:card" content={image ? "summary_large_image" : "summary"} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {image && <meta name="twitter:image" content={image.src} />}
+    {image && <meta name="twitter:image:alt" content={image.alt ?? title} />}
+
+    <slot name="head" />
+  </head>
+  <body class:list={["sg-bio", classes.body]} {...bodyAttributes}>
+    <slot name="before" />
+    <main class:list={["sg-bio__main", classes.main]}>
+      {hasAvatar && (
+        <div class:list={["sg-bio__avatar", classes.avatar]}>
+          <slot name="avatar">
+            {avatar && <img src={avatar.src} alt={avatar.alt} width={avatar.width} height={avatar.height} loading="eager" />}
+          </slot>
+        </div>
+      )}
+
+      {hasEyebrow && (
+        <p class:list={["sg-bio__eyebrow", classes.eyebrow]}>
+          <slot name="eyebrow">{eyebrow}</slot>
+        </p>
+      )}
+
+      <h1 class:list={["sg-bio__name", classes.name]}>{name}</h1>
+
+      {tagline && <p class:list={["sg-bio__tagline", classes.tagline]}>{tagline}</p>}
+
+      <slot />
+
+      <slot name="links">
+        <ul class:list={["sg-bio__links", classes.links]} aria-label={linksLabel}>
+          {data.links.map((link) => (
+            <li>
+              <a
+                {...bioLinkAttributes(link)}
+                class:list={["sg-bio__link", { "sg-bio__link--featured": link.featured }, classes.link, link.class]}
+                data-featured={link.featured ? "" : undefined}
+              >
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </slot>
+
+      <slot name="socials">
+        {socials.length > 0 && (
+          <ul class:list={["sg-bio__socials", classes.socials]} aria-label={socialsLabel}>
+            {socials.map((social) => (
+              <li>
+                <a
+                  class:list={["sg-bio__social", classes.social]}
+                  href={social.href}
+                  aria-label={social.label}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="currentColor"><path d={bioIconPath(social)} /></svg>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </slot>
+
+      <slot name="footer">
+        {copyright && <p class:list={["sg-bio__footer", classes.footer]}>&copy; {year} {copyright}</p>}
+      </slot>
+    </main>
+    <slot name="after" />
+  </body>
+</html>
+
+<style is:global>
+  /* Seule règle du kit : des listes sans puces ni retrait. :where() garde une spécificité nulle. */
+  :where(.sg-bio__links, .sg-bio__socials) {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+</style>
