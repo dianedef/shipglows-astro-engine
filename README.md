@@ -1,6 +1,6 @@
 # @shipglows/astro-engine
 
-Logique partagée **sans style** pour les sites Astro ShipGlows. Chaque site garde son HTML, sa mise en page et son thème visuel.
+Logique partagée **sans style** pour les sites Astro ShipGlows. Chaque site garde son HTML, sa mise en page et son thème visuel. Seules exceptions, à importer au choix : les polices, les barres de défilement et les icônes de base, pour que tous les sites se ressemblent sur ces points.
 
 ## Thème (`/theme`)
 
@@ -334,3 +334,33 @@ Dépendance git figée sur un commit (fonctionne sur Vercel) :
 ```
 
 En développement local, `link:../../shipglows-astro-engine` permet de modifier le kit et le site en même temps.
+
+## Polices et barres de défilement (`/fonts.css`, `/base.css`)
+
+Polices auto-hébergées (OFL), les mêmes que les apps Flutter (`shipglows_theme`) : Inter pour l'interface, Cal Sans pour les titres, JetBrains Mono pour le code.
+
+- `fonts.css` déclare les polices et les variables `--sg-font-sans`, `--sg-font-display`, `--sg-font-mono`, sans rien appliquer.
+- `base.css` l'inclut et pose les polices (`body`, `h1`–`h3`, `code`/`pre`) et des barres de défilement fines et arrondies, tirées de la couleur du texte.
+
+```astro
+---
+import "@shipglows/astro-engine/base.css";
+---
+```
+
+Tout se règle par variables : `--sg-scrollbar-size`, `--sg-scrollbar-thumb`, `--sg-scrollbar-thumb-hover`, `--sg-scrollbar-track`, et les trois `--sg-font-*`.
+
+## Icônes de base (`/icons`)
+
+Un nom par sens (`settings`, `search`, `close`, `quit`…), dessiné par Lucide ; les mêmes noms que `shipglows_icons` côté Flutter et que le modèle de menu.
+
+```astro
+---
+import Icon from "@shipglows/astro-engine/icons/Icon.astro";
+---
+<Icon name="settings" />
+<Icon name="help" label="Aide" size={24} />
+<Icon name="settings" overrides={{ settings: "SlidersHorizontal" }} />
+```
+
+Décorative par défaut ; avec `label`, l'icône est annoncée. `shipglowsIcons` (dans `/icons`) donne la table complète nom → icône Lucide.

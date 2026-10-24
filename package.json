@@ -1,7 +1,7 @@
 {
   "name": "@shipglows/astro-engine",
-  "version": "0.3.0",
-  "description": "Logique partagée et sans style pour les sites Astro ShipGlows.",
+  "version": "0.4.0",
+  "description": "Logique partagée pour les sites Astro ShipGlows, plus polices, barres de défilement et icônes de base.",
   "private": true,
   "type": "module",
   "keywords": [
@@ -20,11 +20,18 @@
     "./legal": "./src/legal/index.ts",
     "./legal/LegalNotice.astro": "./src/legal/LegalNotice.astro",
     "./i18n": "./src/i18n/index.ts",
-    "./i18n/LanguageSelector.astro": "./src/i18n/LanguageSelector.astro"
+    "./i18n/LanguageSelector.astro": "./src/i18n/LanguageSelector.astro",
+    "./fonts.css": "./src/fonts/fonts.css",
+    "./base.css": "./src/base/base.css",
+    "./icons": "./src/icons/index.ts",
+    "./icons/Icon.astro": "./src/icons/Icon.astro"
   },
   "files": [
     "src"
   ],
+  "dependencies": {
+    "@lucide/astro": "^1.30.0"
+  },
   "peerDependencies": {
     "astro": ">=5"
   }

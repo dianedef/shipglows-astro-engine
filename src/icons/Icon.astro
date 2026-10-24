@@ -1,0 +1,31 @@
+---
+/**
+ * Une icône de base par son nom (`settings`, `search`…), dessinée par Lucide.
+ * Décorative par défaut ; avec `label`, elle est annoncée (`role="img"`).
+ * `overrides` remplace l'icône Lucide d'un nom pour ce site.
+ */
+import { icons } from "@lucide/astro";
+import { shipglowsIcons, type ShipglowsIconName, type ShipglowsIconOverrides } from "./index";
+
+interface Props {
+  name: ShipglowsIconName;
+  size?: number | string;
+  strokeWidth?: number;
+  label?: string;
+  overrides?: ShipglowsIconOverrides;
+  class?: string;
+}
+
+const { name, size = 20, strokeWidth = 2, label, overrides, class: className } = Astro.props;
+const Lucide = icons[overrides?.[name] ?? shipglowsIcons[name]];
+---
+
+<Lucide
+  size={size}
+  stroke-width={strokeWidth}
+  class:list={["sg-icon", className]}
+  aria-hidden={label ? undefined : "true"}
+  role={label ? "img" : undefined}
+  aria-label={label}
+  focusable="false"
+/>

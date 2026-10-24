@@ -1,0 +1,49 @@
+/*
+ * Base commune des sites ShipGlows : polices et barres de défilement.
+ * Chaque site garde sa mise en page et ses couleurs ; tout se règle par variables CSS.
+ */
+@import "../fonts/fonts.css";
+
+:root {
+  /* Barres de défilement : fines, arrondies, sans rail, tirées de la couleur du texte. */
+  --sg-scrollbar-size: 10px;
+  --sg-scrollbar-thumb: color-mix(in srgb, currentColor 35%, transparent);
+  --sg-scrollbar-thumb-hover: color-mix(in srgb, currentColor 60%, transparent);
+  --sg-scrollbar-track: transparent;
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--sg-scrollbar-thumb) var(--sg-scrollbar-track);
+}
+
+body {
+  font-family: var(--sg-font-sans);
+}
+
+:where(h1, h2, h3) {
+  font-family: var(--sg-font-display);
+  font-weight: 600;
+}
+
+:where(code, kbd, pre, samp) {
+  font-family: var(--sg-font-mono);
+}
+
+/* Navigateurs sans `scrollbar-color` (Safari) : même rendu par les pseudo-éléments. */
+::-webkit-scrollbar {
+  width: var(--sg-scrollbar-size);
+  height: var(--sg-scrollbar-size);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--sg-scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--sg-scrollbar-thumb) padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--sg-scrollbar-thumb-hover);
+}
