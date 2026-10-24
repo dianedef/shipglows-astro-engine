@@ -8,7 +8,6 @@
 - [ ] `breadcrumbs`: adopt site by site, removing each site's own `BreadcrumbList` JSON-LD.
 - [ ] `i18n`: adopt in the multilingual sites (inventory each site's locale helpers before replacing them).
 - [ ] `base.css` / `icons`: adopt in every site, dropping each site's own Inter/Cal Sans files and `@font-face`, Google Fonts links, scrollbar CSS and direct Lucide imports for base meanings.
-- [ ] JetBrains Mono: add its woff2 files to `fonts.css` (download approval pending).
 
 ## Done
 

@@ -29,6 +29,22 @@
   src: url("./cal-sans-semibold.woff2") format("woff2");
 }
 
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./jetbrains-mono-regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./jetbrains-mono-bold.woff2") format("woff2");
+}
+
 :root {
   --sg-font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --sg-font-display: "Cal Sans", var(--sg-font-sans);

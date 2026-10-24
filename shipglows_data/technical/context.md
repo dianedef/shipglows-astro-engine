@@ -53,7 +53,7 @@ data and, when useful, an `.astro` component.
 | `bio` | `bio`, `bio/BioPage.astro` | Standalone link-in-bio document: SEO head with `noindex, follow` default, avatar, links, social icons, copyright year | 5cdbb63 | none yet |
 | `legal` | `legal`, `legal/LegalNotice.astro` | Legal notice from `defineLegalIdentity` (publisher, director, host, IP), fr/en copy, `vercelHost` preset | 7348276 | none yet |
 | `i18n` | `i18n`, `i18n/LanguageSelector.astro` | Locale path conventions, translated slugs, hreflang alternates, middleware rewrite, language selector | adab840 | none yet |
-| `fonts` / `base` | `fonts.css`, `base.css` | Self-hosted Inter and Cal Sans with `--sg-font-*` variables (`fonts.css`); `base.css` applies them and thin rounded scrollbars (`--sg-scrollbar-*`). Same fonts as Flutter `shipglows_theme`; JetBrains Mono falls back to system monospace until its files are added | 851e66f | none yet |
+| `fonts` / `base` | `fonts.css`, `base.css` | Self-hosted Inter, Cal Sans and JetBrains Mono with `--sg-font-*` variables (`fonts.css`); `base.css` applies them and thin rounded scrollbars (`--sg-scrollbar-*`). Same fonts as Flutter `shipglows_theme` | 851e66f | none yet |
 | `icons` | `icons`, `icons/Icon.astro` | Base icon names shared with Flutter `shipglows_icons` and the menu model, drawn by `@lucide/astro`; accessible `Icon.astro` with per-site overrides | 851e66f | none yet |
 
 ## Cross-Module Contracts
