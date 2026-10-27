@@ -4,7 +4,7 @@ metadata_schema_version: "1.0"
 artifact_version: "1.0.0"
 project: ShipGlows Astro Engine
 created: "2026-10-23"
-updated: "2026-10-23"
+updated: "2026-10-27"
 status: active
 source_skill: sg-docs
 scope: module-map
@@ -41,7 +41,8 @@ data and, when useful, an `.astro` component.
   (`link:`/`file:` only for local co-development).
 - Before replacing a site's home-made code, inventory what it does, migrate
   every useful behavior, and report what is dropped and why.
-- No build, lint or test pipeline in the repo; Astro `>=5` is a peer dependency,
+- No build or lint pipeline in the repo; `tests/` runs with `node --test`
+  (Node 24 strips the `.ts` types natively). Astro `>=5` is a peer dependency,
   `@lucide/astro` the only dependency (for `icons`).
 
 ## Modules
@@ -55,6 +56,7 @@ data and, when useful, an `.astro` component.
 | `i18n` | `i18n`, `i18n/LanguageSelector.astro` | Locale path conventions, translated slugs, hreflang alternates, middleware rewrite, language selector | adab840 | none yet |
 | `fonts` / `base` | `fonts.css`, `base.css` | Self-hosted Inter, Cal Sans and JetBrains Mono with `--sg-font-*` variables (`fonts.css`); `base.css` applies them and thin rounded scrollbars (`--sg-scrollbar-*`). Same fonts as Flutter `shipglows_theme` | 851e66f | none yet |
 | `icons` | `icons`, `icons/Icon.astro` | Base icon names shared with Flutter `shipglows_icons` and the menu model, drawn by `@lucide/astro`; accessible `Icon.astro` with per-site overrides | 851e66f | none yet |
+| `email` | `email` (browser script), `email/NewsletterSignup.astro`, `email/client` (server only) | Public signup form posting to the central service (no secret in the browser; progressive enhancement, status from `?subscription=`), and the server client for service messages and sequence pages (idempotency keys, 429 `Retry-After`, budgets, typed errors without addresses or tokens) | ce commit | none yet; DreamGlows, ReplayGlows, ContentGlows and JarreteLaCoke keep local equivalents until they bump the pin |
 
 ## Cross-Module Contracts
 

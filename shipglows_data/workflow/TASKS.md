@@ -2,6 +2,7 @@
 
 ## Open
 
+- [ ] `email`: adopt in DreamGlows (`WaitlistForm.astro`), ReplayGlows (`FollowUpdates.astro`), ContentGlows (`holding/waitlist.js`) and JarreteLaCoke (`EmailCapture.vue`, `guideDrip.ts` onto `email/client`), dropping each local copy; wait for the engine push (operator approval) before any pin bump.
 - [ ] Push `main` (operator approval), then bump the pinned commit in claiire (17938c1) and shipglows_app (c884afa) when they adopt a newer module.
 - [ ] `bio`: adopt in claiire (`QuickExit` in slot `before`; replace its placeholder social URLs `linkedin.com`, `x.com`… with real accounts), gocharbon (`/fr/bio`; `Button` through slot `links` or per-link classes; duplicated « outils » link to check), notefinderz (becomes `noindex` unless `robots` is passed; anti-copy script and Google Fonts through slots `after`/`head`; `prerender` stays in the page), jarretelacoke (fr/en/es copy through `lang`; its « Accueil » link is not localized).
 - [ ] `legal`: adopt in beatglows, claiire, communityglows, contentglows, gocharbon, notefinderz, replayglows, shipglows_app, bestfriedchicken, jarretelacoke; drop the home-made `LegalNotice.astro` in communityglows, replayglows, shipglows_app, contentglows. Data divergence: replayglows writes « 4 Quai Juin », the others « quai ».
@@ -11,6 +12,7 @@
 
 ## Done
 
+- [x] 2026-10-27: `email` module (`NewsletterSignup.astro`, `subscribe.ts`, `client.ts`), 42 `node --test` checks; no site migrated, nothing built or pushed.
 - [x] 2026-10-25: `breadcrumbs` adopted by gocharbon (bc0160b1, pinned ec1669c): computed styles identical on 4 pages, JSON-LD now follows the visible trail.
 - [x] 2026-10-24: `fonts.css`, `base.css`, `icons` (851e66f); no site migrated, nothing built or tested.
 - [x] 2026-10-23: `bio` (5cdbb63), `legal` (7348276), `i18n` (adab840), `breadcrumbs` (e22224a) modules committed; no site migrated, nothing built or tested.

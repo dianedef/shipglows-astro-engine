@@ -1,0 +1,201 @@
+---
+/**
+ * Formulaire d'inscription sans style, pour tout site ShipGlows : `POST` vers le service central
+ * (CommandGlows), avec ou sans JavaScript. Sans script, le navigateur envoie le formulaire et le
+ * service renvoie vers `returnTo` (`?subscription=pending|error&reason=…`). Avec le script
+ * (`./subscribe`, chargé par ce composant), l'envoi se fait en JSON sans quitter la page.
+ *
+ * Aucun secret ici : seules des valeurs publiques (identifiants d'entreprise et d'audience, source,
+ * URL du service, clé Turnstile publique) sont rendues dans la page.
+ *
+ * Classes `sg-email-signup__*` et slot `consent` (pour un lien vers la politique de confidentialité).
+ * Couleurs : `--sg-email-error` et `--sg-email-success` ; sans elles, la couleur du texte.
+ */
+interface Props {
+  /** URL publique du service : `https://www.commandglows.com/api/v1/email/public/subscriptions`. Vide : formulaire désactivé. */
+  endpoint: string;
+  /** Identifiant d'entreprise déclaré dans la configuration centrale (`a-z0-9_-`). */
+  businessId: string;
+  /** Audience déclarée pour la signature publique de cette entreprise. */
+  audienceId: string;
+  /** Étiquette de provenance, autorisée par `publicSubscribe.sources` (`A-Za-z0-9_-`). */
+  source: string;
+  locale: "fr" | "en";
+  /** URL absolue de retour après un envoi sans JavaScript, sur une origine autorisée pour l'entreprise. */
+  returnTo: string;
+  /** Texte du consentement. Le slot `consent` a priorité et accepte du HTML (lien vers la confidentialité). */
+  consentLabel?: string;
+  submitLabel?: string;
+  /** Clé publique Cloudflare Turnstile, si l'entreprise l'exige. Le secret reste côté serveur. */
+  turnstileSiteKey?: string;
+  /** Préfixe des identifiants HTML, à changer si deux formulaires coexistent sur une page. */
+  idPrefix?: string;
+  class?: string;
+}
+
+const {
+  endpoint,
+  businessId,
+  audienceId,
+  source,
+  returnTo,
+  consentLabel,
+  submitLabel,
+  turnstileSiteKey,
+  idPrefix,
+  class: className,
+} = Astro.props;
+
+const locale = Astro.props.locale === "en" ? "en" : "fr";
+
+const copy = {
+  fr: {
+    email: "Adresse e-mail",
+    placeholder: "vous@exemple.fr",
+    consent:
+      "J’accepte de recevoir des e-mails de ce site. Je confirmerai mon adresse par e-mail et je peux me désinscrire à tout moment.",
+    submit: "S’inscrire",
+    honeypot: "Ne pas remplir",
+    unavailable: "L’inscription n’est pas disponible pour le moment.",
+  },
+  en: {
+    email: "Email address",
+    placeholder: "you@example.com",
+    consent:
+      "I agree to receive emails from this site. I will confirm my address by email and can unsubscribe at any time.",
+    submit: "Subscribe",
+    honeypot: "Leave this field empty",
+    unavailable: "Signup is not available right now.",
+  },
+}[locale];
+
+/** Retour absolu, sans identifiant ; sinon le champ est omis et le retour sans script reste du JSON. */
+function absoluteReturnTo(value: string): string | undefined {
+  try {
+    const url = new URL(value);
+    if ((url.protocol !== "https:" && url.protocol !== "http:") || url.username || url.password) return undefined;
+    return url.href;
+  } catch {
+    return undefined;
+  }
+}
+
+const subscribeUrl = (endpoint ?? "").trim();
+const available = subscribeUrl !== "";
+const safeReturnTo = absoluteReturnTo(returnTo ?? "");
+const prefix = idPrefix ?? `sg-signup-${source}`;
+const emailId = `${prefix}-email`;
+const consentId = `${prefix}-consent`;
+const websiteId = `${prefix}-website`;
+const statusId = `${prefix}-status`;
+---
+
+<form
+  class:list={["sg-email-signup", className]}
+  method="post"
+  action={available ? subscribeUrl : undefined}
+  data-shipglows-subscribe
+  data-locale={locale}
+>
+  <input type="hidden" name="business_id" value={businessId} />
+  <input type="hidden" name="audience_id" value={audienceId} />
+  <input type="hidden" name="source" value={source} />
+  <input type="hidden" name="locale" value={locale} />
+  {safeReturnTo && <input type="hidden" name="return_to" value={safeReturnTo} />}
+
+  <p class="sg-email-signup__field">
+    <label class="sg-email-signup__label" for={emailId}>{copy.email}</label>
+    <input
+      class="sg-email-signup__input"
+      id={emailId}
+      name="email"
+      type="email"
+      inputmode="email"
+      autocomplete="email"
+      required
+      maxlength={254}
+      placeholder={copy.placeholder}
+      disabled={!available}
+    />
+  </p>
+
+  <p class="sg-email-signup__consent">
+    <input
+      class="sg-email-signup__checkbox"
+      id={consentId}
+      name="consent"
+      type="checkbox"
+      value="true"
+      required
+      disabled={!available}
+    />
+    <label class="sg-email-signup__consent-label" for={consentId}>
+      <slot name="consent">{consentLabel ?? copy.consent}</slot>
+    </label>
+  </p>
+
+  <div class="sg-email-signup__trap" aria-hidden="true">
+    <label for={websiteId}>{copy.honeypot}</label>
+    <input id={websiteId} name="website" type="text" tabindex="-1" autocomplete="off" />
+  </div>
+
+  {available && turnstileSiteKey && (
+    <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  )}
+  {available && turnstileSiteKey && (
+    <div class="cf-turnstile" data-sitekey={turnstileSiteKey}></div>
+  )}
+
+  <button class="sg-email-signup__submit" type="submit" disabled={!available}>
+    {submitLabel ?? copy.submit}
+  </button>
+
+  <p
+    id={statusId}
+    class="sg-email-signup__status"
+    role="status"
+    aria-live="polite"
+    tabindex="-1"
+    data-shipglows-status
+    data-tone={available ? "" : "error"}
+  >
+    {!available && copy.unavailable}
+  </p>
+</form>
+
+<script>
+  import { initSubscribeForms } from "./subscribe";
+  initSubscribeForms();
+</script>
+
+<style>
+  .sg-email-signup {
+    position: relative;
+    display: grid;
+    gap: var(--sg-email-gap, 0.75rem);
+  }
+
+  .sg-email-signup__consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  /* Champ piège : hors écran, sans être `display: none` (les robots le remplissent quand même). */
+  .sg-email-signup__trap {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .sg-email-signup__status[data-tone="error"] {
+    color: var(--sg-email-error, currentColor);
+    font-weight: 600;
+  }
+
+  .sg-email-signup__status[data-tone="success"] {
+    color: var(--sg-email-success, currentColor);
+  }
+</style>

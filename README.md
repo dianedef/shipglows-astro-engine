@@ -366,3 +366,114 @@ import Icon from "@shipglows/astro-engine/icons/Icon.astro";
 ```
 
 Décorative par défaut ; avec `label`, l'icône est annoncée. `shipglowsIcons` (dans `/icons`) donne la table complète nom → icône Lucide.
+
+## Email (service central ShipGlows)
+
+Formulaire d'inscription et client du service email central (CommandGlows). Le site ne détient aucun secret pour l'inscription publique : il poste vers le service, qui gère le double opt-in, la suppression et l'envoi. Le jeton serveur des séquences et des messages de service ne vit que dans le serveur du site.
+
+| Import | Contenu | Où |
+| --- | --- | --- |
+| `@shipglows/astro-engine/email/NewsletterSignup.astro` | Formulaire d'inscription (progressive enhancement) | Rendu serveur, script navigateur inclus |
+| `@shipglows/astro-engine/email` | Script navigateur : `initSubscribeForms`, `subscribeMessages`, helpers purs | Navigateur (importé par le composant) |
+| `@shipglows/astro-engine/email/client` | `createCentralEmailClient` : messages de service et séquences | Serveur uniquement (porte un jeton) |
+
+### Nouveau site : formulaire
+
+Variables publiques du site (aucun secret) : `PUBLIC_EMAIL_SUBSCRIBE_URL` (`https://www.commandglows.com/api/v1/email/public/subscriptions`), `PUBLIC_EMAIL_BUSINESS_ID`, `PUBLIC_EMAIL_AUDIENCE_ID`. `Astro.site` doit être défini dans `astro.config`.
+
+```astro
+---
+import NewsletterSignup from "@shipglows/astro-engine/email/NewsletterSignup.astro";
+---
+<NewsletterSignup
+  endpoint={import.meta.env.PUBLIC_EMAIL_SUBSCRIBE_URL ?? ""}
+  businessId={import.meta.env.PUBLIC_EMAIL_BUSINESS_ID}
+  audienceId={import.meta.env.PUBLIC_EMAIL_AUDIENCE_ID}
+  source="footer"
+  locale="fr"
+  returnTo={new URL("/merci/", Astro.site).href}
+>
+  <Fragment slot="consent">
+    J’accepte de recevoir des e-mails de ce site. <a href="/confidentialite">Politique de confidentialité</a>.
+  </Fragment>
+</NewsletterSignup>
+```
+
+- `endpoint` vide : le formulaire est désactivé et affiche un message. Aucun appel n'est fait.
+- `returnTo` : URL absolue sur une origine autorisée pour l'entreprise. Sans JavaScript, le service y redirige avec `?subscription=pending` ou `?subscription=error&reason=<code>`. Ce retour s'affiche avec le script, donc il n'apparaît pas sans JavaScript.
+- `turnstileSiteKey` : clé publique Cloudflare, si l'entreprise exige Turnstile. Le secret reste côté CommandGlows.
+- `consentLabel`, `submitLabel`, `idPrefix` (deux formulaires sur une page), `class`. Le slot `consent` accepte du HTML.
+- Classes `sg-email-signup__*` ; couleurs par `--sg-email-error`, `--sg-email-success` et l'espace par `--sg-email-gap`. Sans elles, la couleur du texte.
+
+Formulaire écrit à la main : mêmes attributs (`data-shipglows-subscribe`, `data-locale`, champs `business_id`, `audience_id`, `source`, `locale`, `email`, `consent`, `website`), un élément `[data-shipglows-status]` (`role="status"`, `tabindex="-1"`) et un `button[type="submit"]`. Puis, dans un script, `initSubscribeForms()`.
+
+Textes : `initSubscribeForms({ messages: { fr: { pending: "…" } } })` pour un appel, ou modifier `subscribeMessages` avant l'envoi. Mapping des codes : `invalid_email`, `consent_required`, `captcha_failed`, `rate_limited` (et 429) ont leur message ; `forbidden_origin`, `public_subscribe_unavailable` et 403 disent « indisponible » ; `unavailable` et tout code inconnu disent « erreur générique » ; `invalid_input`, `unsupported_media_type`, `payload_too_large`, `method_not_allowed` disent « formulaire non envoyé » ; un échec réseau dit « serveur injoignable ».
+
+### Serveur : client et séquences (cron)
+
+Les séquences sont enregistrées dans la configuration centrale : le site envoie le contenu, jamais le calendrier. Une passe par jour suffit.
+
+```ts
+// src/pages/api/cron/sequences.ts (serveur uniquement)
+import { createCentralEmailClient, CentralEmailError } from "@shipglows/astro-engine/email/client";
+
+const client = createCentralEmailClient({
+  baseUrl: process.env.CENTRAL_EMAIL_API_URL!, // https://www.commandglows.com
+  token: process.env.CENTRAL_EMAIL_SEQUENCE_TOKEN!, // jeton serveur, jamais dans le navigateur
+});
+
+for (const step of STEPS) {
+  const result = await client.runSequenceStep({
+    businessId: "monsite",
+    audienceId: "newsletter",
+    sequenceId: "welcome",
+    step: step.step,
+    content: { fr: { subject: step.subject, blocks: step.blocks } },
+  });
+  // result : { step, pages, queued, skipped, complete, error? }. `error` est un code, jamais un détail.
+}
+
+// Message de service (compte, produit) : une clé stable par message, rejouée telle quelle en cas de retry.
+try {
+  const receipt = await client.sendServiceMessage(input, `export-${jobId}-v1`);
+} catch (error) {
+  if (error instanceof CentralEmailError) console.warn("service email", error.code);
+}
+```
+
+- Chaque page est un appel ; `runSequenceStep` enchaîne les pages jusqu'à `complete`, avec une clé par page `<séquence>:<étape>:<AAAA-MM-JJ>:<first|hash>`. Rejouer le même jour renvoie les reçus d'origine.
+- Budgets : 50 s par opération (`budgetMs`), 15 s par appel (`timeoutMs`), 100 pages par étape (`maxPages`), deux nouvelles tentatives sur 429 en respectant `Retry-After`.
+- Erreurs : `CentralEmailError` porte un `code` (`invalid_config`, `invalid_input`, `timeout`, `network`, `rate_limited`, `invalid_receipt`, `cursor_stalled`, `budget_exhausted`, `http_error`, ou un code du service comme `unknown_sequence_step`). Le message est le code seul : ni adresse, ni identifiant de membre, ni jeton. `runSequenceStep` rend l'erreur dans `error` ; seule une entrée invalide lève une exception.
+- Contenu vérifié avant tout envoi : sujet et préheader sur une ligne (200 et 300 caractères UTF-16), pas de `{{` ni `}}`, pas de contrôle ni de caractère bidi, 1 à 60 blocs à identifiants uniques, 4 000 caractères par bloc (20 000 pour `rich_text`).
+- Environnement : `fetch` et Web Crypto seulement, donc Node, Vercel, edge ou action Convex. `fetch`, `now` et `sleep` sont injectables pour les tests.
+
+### Prérequis opérateur (configuration centrale)
+
+À déclarer dans `EMAIL_CONTROL_CONFIG` côté CommandGlows, avant toute inscription :
+
+1. Entreprise `businesses[]` : identifiant, audiences (`purpose`, `noticeVersions`, `sources`).
+2. Bloc `publicSubscribe` : `allowedOrigins` exacts (y compris l'origine de `returnTo`), `audiences`, `sources` si elles diffèrent de celles de l'audience, `turnstile: true` si exigé (avec `EMAIL_TURNSTILE_SECRET_KEY`, côté CommandGlows seulement).
+3. Séquences `sequences[]` : `id` (`^[a-z0-9][a-z0-9_-]{0,63}$`), `maxLagDays` de 1 à 7, `steps` avec `dayOffset` strictement croissants.
+4. Client `clients[]` : `businessIds`, `operations` (`subscribe`, `sequence_send`, `service_message` selon l'usage), `credentialEnv` désignant une variable d'au moins 32 caractères, présente côté serveur du site.
+5. `EMAIL_SUPPRESSION_HASH_KEY` configurée côté CommandGlows : requise pour la pagination des séquences.
+
+Détail : `shipglows_data/technical/central-email-api-contract.md` (sections « Public subscription », « Service messages » et « Sequence steps » du dépôt CommandGlows).
+
+### Sites à migrer
+
+Ces sites ont encore leur propre équivalent local. Ils le remplaceront par ce module à leur prochain bump d'épingle, une fois ce module poussé (le push reste soumis à accord) :
+
+- DreamGlows : `website/src/components/WaitlistForm.astro` ;
+- ReplayGlows : `site/src/components/FollowUpdates.astro` ;
+- ContentGlows : `site/holding/waitlist.js` ;
+- JarreteLaCoke : `src/components/EmailCapture.vue`, `src/lib/guideDrip.ts` (séquence du guide).
+
+### Tests
+
+Node 24 (ou 22.18+) lit les `.ts` nativement ; aucun outil de build :
+
+```
+node --test tests/email/client.test.ts tests/email/subscribe.test.ts
+```
+
+Couvert : pagination et curseur, clés d'idempotence, 429 et `Retry-After`, budgets et délais, erreurs typées, validation du contenu avant envoi, absence d'adresse et de jeton dans les erreurs, mapping des codes publics, lecture du retour sans JavaScript. Non couvert : le comportement DOM du script et du composant, à vérifier dans un site réel.
