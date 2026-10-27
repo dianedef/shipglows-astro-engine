@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   buildSubscribeBody,
+  isLandingPage,
   mergeSubscribeMessages,
   pickSubscribeLocale,
   readSubscribeLanding,
@@ -74,6 +75,15 @@ test("retour : valeurs inconnues et adresse sans retour ignorées", () => {
   assert.equal(readSubscribeLanding(""), undefined);
   assert.equal(readSubscribeLanding("?utm_source=mail"), undefined);
   assert.equal(readSubscribeLanding("?subscription=peut-etre"), undefined);
+});
+
+test("retour : le formulaire dont return_to désigne la page courante reçoit le message", () => {
+  const page = "https://www.example.com/contact/?subscription=error&reason=invalid_email";
+  assert.equal(isLandingPage("https://www.example.com/contact/", page), true);
+  assert.equal(isLandingPage("https://www.example.com/newsletter/", page), false);
+  assert.equal(isLandingPage("https://other.example.com/contact/", page), false);
+  assert.equal(isLandingPage("", page), false);
+  assert.equal(isLandingPage("pas une url", page), false);
 });
 
 test("nettoyage de l'adresse : seuls subscription et reason sont retirés", () => {

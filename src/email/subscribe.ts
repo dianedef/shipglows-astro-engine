@@ -127,6 +127,17 @@ export function readSubscribeLanding(search: string): SubscribeLanding | undefin
   return undefined;
 }
 
+/** Vrai si `returnTo` désigne la page `pageHref` : même origine et même chemin (requête et fragment ignorés). */
+export function isLandingPage(returnTo: string, pageHref: string): boolean {
+  try {
+    const target = new URL(returnTo);
+    const page = new URL(pageHref);
+    return target.origin === page.origin && target.pathname === page.pathname;
+  } catch {
+    return false;
+  }
+}
+
 /** Query sans `subscription` ni `reason`, pour nettoyer l'adresse sans toucher aux autres paramètres. */
 export function stripSubscribeLanding(search: string): string {
   const params = new URLSearchParams(search);
@@ -191,7 +202,7 @@ export function initSubscribeForms(options: InitSubscribeOptions = {}): void {
   }
   if (enhanced.length > 0 && !landingConsumed) {
     landingConsumed = true;
-    consumeLanding(enhanced[0], options.messages);
+    consumeLanding(enhanced, options.messages);
   }
 }
 
@@ -255,7 +266,9 @@ function enhanceForm(
     if (busy) return;
     const copy = resolveMessages(locale, overrides);
     const value = email.value.trim();
-    if (!value || !email.checkValidity()) {
+    const invalid = !value || !email.checkValidity();
+    email.setAttribute("aria-invalid", String(invalid));
+    if (invalid) {
       show(copy.invalidEmail, "error");
       email.focus();
       return;
@@ -287,22 +300,26 @@ function enhanceForm(
           }),
         ),
       });
+      // The status takes focus only once there is an outcome, never on the intermediate state.
       if (response.status === 202) {
         form.reset();
         resetTurnstile(form);
         show(copy.pending, "success");
+        status.focus();
       } else {
         const key = subscribeMessageKey(await errorCodeOf(response), response.status);
+        email.setAttribute("aria-invalid", String(key === "invalidEmail"));
         show(copy[key], "error");
         resetTurnstile(form);
+        status.focus();
       }
     } catch {
       show(copy.network, "error");
+      status.focus();
     } finally {
       busy = false;
       submit.disabled = false;
       submit.textContent = idleLabel;
-      status.focus();
     }
   });
   return true;
@@ -315,16 +332,30 @@ function resetTurnstile(form: HTMLFormElement): void {
   if (widget && turnstile?.reset) turnstile.reset(widget);
 }
 
+/** Le formulaire dont `return_to` désigne la page courante ; à défaut, le premier de la page. */
+function landingFormOf(forms: HTMLFormElement[], pageHref: string): HTMLFormElement {
+  return (
+    forms.find((form) => {
+      const returnTo = form.querySelector<HTMLInputElement>('input[name="return_to"]')?.value ?? "";
+      return isLandingPage(returnTo, pageHref);
+    }) ?? forms[0]
+  );
+}
+
 /** Affiche le retour d'un envoi sans JavaScript, puis retire les paramètres de l'adresse. */
-function consumeLanding(form: HTMLFormElement, overrides: InitSubscribeOptions["messages"]): void {
+function consumeLanding(forms: HTMLFormElement[], overrides: InitSubscribeOptions["messages"]): void {
   if (typeof window === "undefined") return;
   const landing = readSubscribeLanding(window.location.search);
   if (!landing) return;
+  const form = landingFormOf(forms, window.location.href);
   const status = form.querySelector<HTMLElement>("[data-shipglows-status]");
   const copy = resolveMessages(pickSubscribeLocale(form.dataset.locale), overrides);
   if (status) {
     status.textContent = landing.outcome === "pending" ? copy.pending : copy[landing.key];
     status.dataset.tone = landing.outcome === "pending" ? "success" : "error";
+  }
+  if (landing.outcome === "error" && landing.key === "invalidEmail") {
+    form.querySelector<HTMLInputElement>('input[name="email"]')?.setAttribute("aria-invalid", "true");
   }
   const search = stripSubscribeLanding(window.location.search);
   window.history.replaceState(window.history.state, "", `${window.location.pathname}${search}${window.location.hash}`);

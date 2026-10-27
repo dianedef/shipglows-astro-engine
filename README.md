@@ -401,7 +401,7 @@ import NewsletterSignup from "@shipglows/astro-engine/email/NewsletterSignup.ast
 
 - `endpoint` vide : le formulaire est désactivé et affiche un message. Aucun appel n'est fait.
 - `returnTo` : URL absolue sur une origine autorisée pour l'entreprise. Sans JavaScript, le service y redirige avec `?subscription=pending` ou `?subscription=error&reason=<code>`. Ce retour s'affiche avec le script, donc il n'apparaît pas sans JavaScript.
-- `turnstileSiteKey` : clé publique Cloudflare, si l'entreprise exige Turnstile. Le secret reste côté CommandGlows.
+- `turnstileSiteKey` : clé publique Cloudflare, si l'entreprise exige Turnstile. Le secret reste côté CommandGlows. Turnstile exige JavaScript : sans script, le widget ne peut pas passer la vérification, donc le formulaire affiche un avertissement `<noscript>` au lieu d'un envoi qui échouerait.
 - `consentLabel`, `submitLabel`, `idPrefix` (deux formulaires sur une page), `class`. Le slot `consent` accepte du HTML.
 - Classes `sg-email-signup__*` ; couleurs par `--sg-email-error`, `--sg-email-success` et l'espace par `--sg-email-gap`. Sans elles, la couleur du texte.
 

@@ -191,7 +191,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-/** Origine https du service central ; http n'est accepté que pour une boucle locale de développement. */
+/**
+ * Origine https du service central ; http n'est accepté que pour une boucle locale de développement.
+ * Une URL de base avec un chemin, une requête ou un fragment est refusée : le client ajoute ses
+ * propres chemins, et un préfixe ignoré en silence enverrait les appels ailleurs qu'attendu.
+ */
 export function centralOrigin(raw: unknown): string {
   if (typeof raw !== "string") throw new CentralEmailError("invalid_config");
   let url: URL;
@@ -202,6 +206,9 @@ export function centralOrigin(raw: unknown): string {
   }
   const loopback = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]";
   if ((url.protocol !== "https:" && !(loopback && url.protocol === "http:")) || url.username || url.password) {
+    throw new CentralEmailError("invalid_config");
+  }
+  if (url.pathname !== "/" || url.search !== "" || url.hash !== "") {
     throw new CentralEmailError("invalid_config");
   }
   return url.origin;

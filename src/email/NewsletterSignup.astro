@@ -57,6 +57,7 @@ const copy = {
     submit: "S’inscrire",
     honeypot: "Ne pas remplir",
     unavailable: "L’inscription n’est pas disponible pour le moment.",
+    noscript: "Cette inscription exige JavaScript pour la vérification anti-robot. Activez JavaScript pour vous inscrire.",
   },
   en: {
     email: "Email address",
@@ -66,6 +67,7 @@ const copy = {
     submit: "Subscribe",
     honeypot: "Leave this field empty",
     unavailable: "Signup is not available right now.",
+    noscript: "This signup needs JavaScript for the anti-bot check. Enable JavaScript to subscribe.",
   },
 }[locale];
 
@@ -115,6 +117,7 @@ const statusId = `${prefix}-status`;
       required
       maxlength={254}
       placeholder={copy.placeholder}
+      aria-describedby={statusId}
       disabled={!available}
     />
   </p>
@@ -144,6 +147,11 @@ const statusId = `${prefix}-status`;
   )}
   {available && turnstileSiteKey && (
     <div class="cf-turnstile" data-sitekey={turnstileSiteKey}></div>
+  )}
+  {available && turnstileSiteKey && (
+    <noscript>
+      <p class="sg-email-signup__status" data-tone="error">{copy.noscript}</p>
+    </noscript>
   )}
 
   <button class="sg-email-signup__submit" type="submit" disabled={!available}>

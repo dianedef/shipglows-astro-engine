@@ -404,7 +404,12 @@ test("configuration : URL de base et jeton vérifiés avant tout appel", () => {
   assert.throws(ok(BASE, "court"), (e) => e.code === "invalid_config");
   assert.doesNotThrow(ok("http://localhost:3000"));
   assert.doesNotThrow(ok("http://127.0.0.1:8787"));
-  assert.equal(centralOrigin("https://www.commandglows.com/chemin/"), BASE);
+  assert.equal(centralOrigin("https://www.commandglows.com/"), BASE);
+  assert.equal(centralOrigin("https://www.commandglows.com"), BASE);
+  // A path, a query or a fragment would be silently ignored by the client: refused.
+  for (const raw of ["https://www.commandglows.com/chemin/", "https://www.commandglows.com/api?x=1", "https://www.commandglows.com/#f"]) {
+    assert.throws(() => centralOrigin(raw), (e) => e.code === "invalid_config", raw);
+  }
 });
 
 test("Retry-After : secondes, date HTTP ou valeur inconnue", () => {
