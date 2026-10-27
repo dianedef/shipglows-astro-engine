@@ -144,6 +144,8 @@ const schema = breadcrumbJsonLd(items, { site: Astro.site, currentUrl: Astro.url
 
 Un site doit retirer son ancien `BreadcrumbList` en l'adoptant, sinon Google en voit deux.
 
+Le HTML est rendu par le composant du kit : un `<style>` scoped du site ne l'atteint pas. Écrire ces règles en `is:global`, en ciblant les classes `sg-breadcrumbs__*` (ex. `.site-breadcrumbs.sg-breadcrumbs a.sg-breadcrumbs__link`) pour garder la priorité de l'ancien CSS scoped face aux règles globales des liens.
+
 ## Page bio (`/bio`)
 
 Page « link-in-bio » autonome (document HTML complet, sans le layout du site) : `<head>` SEO (canonical, hreflang, Open Graph, Twitter), `robots` à `noindex, follow` par défaut, avatar, titre, accroche, liens, icônes de réseaux, pied de page « © année ». Les liens et textes restent dans le site ; aucun style.

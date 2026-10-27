@@ -49,7 +49,7 @@ data and, when useful, an `.astro` component.
 | Module | Exports | Role | Commit | Consumers (2026-10-23) |
 | --- | --- | --- | --- | --- |
 | `theme` | `theme`, `theme/client`, `theme/ThemeScript.astro`, `theme/ThemeToggle.astro` | Theme axes on `<html>` (data attributes or classes), anti-flash script, localStorage, live system preference, data-theme-* controls, ready-made toggle | 11f36f8, b2a30ef, 17938c1 | claiire (pinned 17938c1), shipglows_app (pinned c884afa), communityglows (`file:` link) |
-| `breadcrumbs` | `breadcrumbs`, `breadcrumbs/Breadcrumbs.astro` | Accessible breadcrumb HTML and `BreadcrumbList` JSON-LD from one list of steps; generation from the URL | e22224a | none yet |
+| `breadcrumbs` | `breadcrumbs`, `breadcrumbs/Breadcrumbs.astro` | Accessible breadcrumb HTML and `BreadcrumbList` JSON-LD from one list of steps; generation from the URL | e22224a | gocharbon (pinned ec1669c, bc0160b1) |
 | `bio` | `bio`, `bio/BioPage.astro` | Standalone link-in-bio document: SEO head with `noindex, follow` default, avatar, links, social icons, copyright year | 5cdbb63 | none yet |
 | `legal` | `legal`, `legal/LegalNotice.astro` | Legal notice from `defineLegalIdentity` (publisher, director, host, IP), fr/en copy, `vercelHost` preset | 7348276 | none yet |
 | `i18n` | `i18n`, `i18n/LanguageSelector.astro` | Locale path conventions, translated slugs, hreflang alternates, middleware rewrite, language selector | adab840 | none yet |
