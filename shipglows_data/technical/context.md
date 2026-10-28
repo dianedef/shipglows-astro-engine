@@ -4,7 +4,7 @@ metadata_schema_version: "1.0"
 artifact_version: "1.0.0"
 project: ShipGlows Astro Engine
 created: "2026-10-23"
-updated: "2026-10-27"
+updated: "2026-10-28"
 status: active
 source_skill: sg-docs
 scope: module-map
@@ -57,6 +57,7 @@ data and, when useful, an `.astro` component.
 | `fonts` / `base` | `fonts.css`, `base.css` | Self-hosted Inter, Cal Sans and JetBrains Mono with `--sg-font-*` variables (`fonts.css`); `base.css` applies them and thin rounded scrollbars (`--sg-scrollbar-*`). Same fonts as Flutter `shipglows_theme` | 851e66f | none yet |
 | `icons` | `icons`, `icons/Icon.astro` | Base icon names shared with Flutter `shipglows_icons` and the menu model, drawn by `@lucide/astro`; accessible `Icon.astro` with per-site overrides | 851e66f | none yet |
 | `email` | `email` (browser script), `email/NewsletterSignup.astro`, `email/client` (server only) | Public signup form posting to the central service (no secret in the browser; progressive enhancement, status from `?subscription=`), and the server client for service messages and sequence pages (idempotency keys, 429 `Retry-After`, budgets, typed errors without addresses or tokens) | ce commit | none yet; DreamGlows, ReplayGlows, ContentGlows and JarreteLaCoke keep local equivalents until they bump the pin |
+| `analytics` | `analytics` (préférences : opposition, consentement), `analytics/tracker`, `analytics/Analytics.astro`, `analytics/AnalyticsOptOut.astro` | CNIL consent-exempt audience measurement to ContentGlows `/a/collect` (pv/en/cl, 13-month first-party id, no UTM without consent) and the privacy-policy opt-out button | ce commit | none yet; sites still use the injected `/a/s.js` |
 
 ## Cross-Module Contracts
 

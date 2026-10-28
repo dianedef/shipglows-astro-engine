@@ -1,0 +1,35 @@
+---
+/**
+ * Mesure d'audience ShipGlows, exemptée de consentement par défaut (cadre CNIL).
+ * À placer dans <body> du layout, une seule fois. Les props décrivent la page courante :
+ * le tracker les relit à chaque navigation (ClientRouter compris).
+ */
+interface Props {
+  /** Origine du backend ContentGlows, par exemple `https://api.contentglows.com`. */
+  endpoint: string;
+  /** `article`, `category`, `home`… (libre, 40 caractères). */
+  pageType?: string;
+  /** Auteur affiché de l'article. Un nom public, jamais une adresse e-mail. */
+  author?: string;
+  category?: string;
+  /** Langue de la page ; à défaut, l'attribut `lang` de <html>. */
+  lang?: string;
+}
+
+const { endpoint, pageType, author, category, lang } = Astro.props;
+---
+
+<span
+  hidden
+  data-sg-analytics
+  data-endpoint={endpoint}
+  data-page-type={pageType}
+  data-author={author}
+  data-category={category}
+  data-lang={lang}
+></span>
+
+<script>
+  import { initAnalytics } from "./tracker";
+  initAnalytics();
+</script>

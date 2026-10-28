@@ -327,6 +327,27 @@ export const onRequest = defineMiddleware((context, next) => {
 
 `<nav aria-label><ul><li><a hreflang lang>` sans style ; masqué s'il n'y a pas d'autre langue. Props : `config`, `path` (défaut URL courante), `locale`, `translations`, `fallback` (`home` : lien vers l'accueil de la langue sans traduction, défaut ; `hide`), `showCurrent` (`aria-current="page"`), `display` (`label` « English » ou `code` « EN »), `label` (sans lui, seule la `<ul>` est rendue), `linkLabel`, `linkTitle`, `class`, `listClass`, `itemClass`, `linkClass`. Contenu sur mesure : une fonction en enfant, `{(link) => <span>{link.label}</span>}`.
 
+## Mesure d'audience (`/analytics`)
+
+Mesure sans bandeau, dans l'exemption de consentement de la CNIL (grille d'auto-évaluation de juillet 2025), envoyée au backend ContentGlows (`POST /a/collect`). Règles détaillées : `contentglows/shipglows_data/technical/lab/audience-measurement-cnil.md`.
+
+```astro
+---
+import Analytics from "@shipglows/astro-engine/analytics/Analytics.astro";
+---
+<body>
+  <slot />
+  <Analytics endpoint="https://api.contentglows.com" pageType="article" author={post.author} category={post.category} />
+</body>
+```
+
+- Mesuré : pages vues (type, auteur, catégorie, langue), profondeur de lecture, temps d'attention, temps de chargement, liens sortants, téléchargements, éléments `data-sg-track="libellé"`. `trackFeature("libellé")` (depuis `analytics/tracker`) pour un bouton d'îlot.
+- Visiteur reconnu 13 mois (identifiant aléatoire first-party, jamais prolongé), session de 30 minutes : nouveaux/fidèles, parcours agrégés, pages qui font revenir.
+- Jamais : chaîne de requête, formulaire, texte saisi, empreinte, rejeu de session ; référent réduit au domaine ; UTM seulement avec consentement.
+- Opposition obligatoire dans la politique de confidentialité : `<AnalyticsOptOut locale="fr" />` (`analytics/AnalyticsOptOut.astro`). La politique doit aussi décrire la mesure.
+- Bandeau (mode consenti, finalité marketing) : appeler `setAnalyticsConsent(true|false)` de `@shipglows/astro-engine/analytics` ; les UTM partent alors avec les pages vues. Choix valable 6 mois.
+- Le domaine du site doit être un domaine de travail vérifié du projet ContentGlows ; remplace le script injecté `/a/s.js`.
+
 ## Installation dans un site
 
 Dépendance git figée sur un commit (fonctionne sur Vercel) :

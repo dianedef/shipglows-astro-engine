@@ -1,0 +1,74 @@
+---
+/**
+ * Bouton d'opposition à la mesure d'audience, exigé par la CNIL dans la politique de
+ * confidentialité. Le choix est gardé dans le stockage du site et efface l'identifiant visiteur.
+ */
+type Locale = "fr" | "en";
+
+interface Props {
+  locale?: Locale;
+  class?: string;
+}
+
+const copy = {
+  fr: {
+    active: "La mesure d'audience anonyme est active sur ce site.",
+    stopped: "Vous vous êtes opposé·e à la mesure d'audience : aucune donnée n'est envoyée.",
+    unavailable: "Le stockage du navigateur est bloqué : aucune mesure n'est faite.",
+    optOut: "Je m'oppose à la mesure d'audience",
+    optIn: "Réactiver la mesure d'audience",
+  },
+  en: {
+    active: "Anonymous audience measurement is active on this site.",
+    stopped: "You have opted out of audience measurement: no data is sent.",
+    unavailable: "Browser storage is blocked: nothing is measured.",
+    optOut: "Opt out of audience measurement",
+    optIn: "Turn audience measurement back on",
+  },
+} as const;
+
+const { locale = "fr", class: className } = Astro.props;
+const text = copy[locale];
+---
+
+<div class:list={["sg-analytics-optout", className]} data-sg-analytics-optout data-copy={JSON.stringify(text)}>
+  <p class="sg-analytics-optout__status" role="status" data-sg-status>{text.active}</p>
+  <button type="button" class="sg-analytics-optout__button" data-sg-toggle>{text.optOut}</button>
+</div>
+
+<script>
+  import { isOptedOut, optIn, optOut, storageAvailable } from "./index";
+
+  function bind(root: HTMLElement) {
+    const text = JSON.parse(root.dataset.copy ?? "{}");
+    const status = root.querySelector<HTMLElement>("[data-sg-status]");
+    const button = root.querySelector<HTMLButtonElement>("[data-sg-toggle]");
+    if (!status || !button) return;
+    const render = () => {
+      if (!storageAvailable()) {
+        status.textContent = text.unavailable;
+        button.hidden = true;
+        return;
+      }
+      const stopped = isOptedOut();
+      status.textContent = stopped ? text.stopped : text.active;
+      button.textContent = stopped ? text.optIn : text.optOut;
+    };
+    button.addEventListener("click", () => {
+      if (isOptedOut()) optIn();
+      else optOut();
+      render();
+    });
+    render();
+  }
+
+  function init() {
+    document.querySelectorAll<HTMLElement>("[data-sg-analytics-optout]:not([data-bound])").forEach((root) => {
+      root.dataset.bound = "";
+      bind(root);
+    });
+  }
+
+  init();
+  document.addEventListener("astro:page-load", init);
+</script>
