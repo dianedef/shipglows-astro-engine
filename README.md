@@ -480,9 +480,9 @@ try {
 
 Détail : `shipglows_data/technical/central-email-api-contract.md` (sections « Public subscription », « Service messages » et « Sequence steps » du dépôt CommandGlows).
 
-### Sites à migrer
+### Adoption optionnelle
 
-Ces sites ont encore leur propre équivalent local. Ils le remplaceront par ce module à leur prochain bump d'épingle, une fois ce module poussé (le push reste soumis à accord) :
+Ces sites postent déjà vers le service central avec leurs formulaires locaux. Ils peuvent adopter ce module au prochain bump d'épingle du moteur :
 
 - DreamGlows : `website/src/components/WaitlistForm.astro` ;
 - ReplayGlows : `site/src/components/FollowUpdates.astro` ;
