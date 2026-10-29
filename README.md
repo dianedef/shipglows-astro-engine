@@ -315,7 +315,7 @@ Helpers (purs, `config` en premier argument) :
 | `localeLinks` | Un lien par langue publiée (`current`, `translated`, libellé, hreflang, og:locale) |
 | `alternates` / `sitemapLinks` | `hreflang` + `x-default`, vide si la page n'a qu'une langue ; format `@astrojs/sitemap` |
 | `localizedPaths` | Toutes les variantes de chemins (`customPages` du sitemap) |
-| `astroRedirects` | 301 des URL `legacy` (sections : `/old/[slug]`, servies par une page `[slug].astro`) pour `redirects` d'`astro.config` |
+| `astroRedirects` | 301 des URL `legacy` pour `redirects` d'`astro.config` ; section : `/old/[slug]` → `/new/[slug]` (autre paramètre : `{ params: { "/fr/comparer/*": "apps" } }`) |
 | `localeRedirect` | Pour un middleware : 301 de `?lang=` et du préfixe de la langue par défaut |
 | `rewritePath` | Pour un middleware qui sert une page pour toutes les langues : `/en/carte` → `/carte`, `/fr/confidentialite` → `/privacy` |
 | `matchLocale` / `normalizeLocale` | `en-US`, `fr_BE`, frontmatter → langue (ou défaut) |

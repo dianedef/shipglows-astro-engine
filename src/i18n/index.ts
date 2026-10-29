@@ -294,16 +294,23 @@ export function localizedPaths<C extends I18nConfig>(
   return [...result];
 }
 
-/** Redirections 301 des URL `legacy` de `routes`, au format `redirects` d'`astro.config` (section : `/old/[slug]` → `/new/[slug]`). */
-export function astroRedirects<C extends I18nConfig>(config: C): Record<string, { status: 301; destination: string }> {
+/**
+ * Redirections 301 des URL `legacy` de `routes`, au format `redirects` d'`astro.config`.
+ * Section : `/old/[slug]` → `/new/[slug]` ; Astro exige que la destination soit une route existante
+ * au même paramètre, `params` donne un autre nom par section (`{ "/fr/comparer/*": "apps" }`).
+ */
+export function astroRedirects<C extends I18nConfig>(
+  config: C,
+  options: { params?: Record<string, string> } = {},
+): Record<string, { status: 301; destination: string }> {
   const redirects: Record<string, { status: 301; destination: string }> = {};
   for (const route of config.routes ?? []) {
     for (const [locale, paths] of Object.entries(route.legacy ?? {}) as [LocaleOf<C>, readonly string[]][]) {
       const destination = route[locale];
       if (!destination) throw new Error(`i18n : legacy ${locale} sans chemin ${locale} dans la paire.`);
+      const param = options.params?.[destination] ?? "slug";
       for (const path of paths) {
-        // Astro exige que la destination soit une route existante aux mêmes paramètres : la section est servie par `[slug].astro`.
-        const section = (value: string) => `${normalize(value.slice(0, -2))}/[slug]`;
+        const section = (value: string) => `${normalize(value.slice(0, -2))}/[${param}]`;
         if (path.endsWith("/*")) redirects[section(path)] = { status: 301, destination: section(destination) };
         else redirects[normalize(path)] = { status: 301, destination: normalize(destination) };
       }
