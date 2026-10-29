@@ -251,7 +251,7 @@ Une seule convention d'URL pour tous les sites ; un site ne règle que ses langu
 - Langue par défaut sans préfixe, chaque autre langue sous `/<code>` (`/en/pricing`) ; `/<langue par défaut>/…` redirige en 301 vers le chemin sans préfixe.
 - Slugs traduits (`/privacy` ↔ `/fr/confidentialite`), section avant le slug (`/fr/blog/…`), pas de barre finale.
 - `hreflang` = code de langue seul, `x-default` = langue par défaut, seulement sur les pages réellement traduites.
-- Sélecteur toujours visible : une langue sans traduction de la page mène à son accueil.
+- Sélecteur toujours visible : une langue sans traduction de la page mène à la page parente traduite la plus proche (`/blog/x` → `/fr/blog`), sinon à son accueil.
 - `?lang=<code>` redirige en 301 vers l'URL de la langue.
 
 ```ts

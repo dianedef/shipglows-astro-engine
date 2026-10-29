@@ -5,7 +5,8 @@
  * - les slugs sont traduits, chaque paire est déclarée dans `routes` (articles : `translations`) ;
  * - la section précède le slug (`/fr/blog/…`), pas de barre finale ;
  * - `hreflang` = code de langue seul, `x-default` = langue par défaut, seulement sur les pages traduites ;
- * - le sélecteur est toujours là : sans traduction, il mène à l'accueil de la langue ;
+ * - le sélecteur est toujours là : sans traduction, il mène à la page parente traduite la plus proche
+ *   (`/blog/x` non traduit → `/fr/blog`), sinon à l'accueil de la langue ;
  * - `?lang=<code>` redirige en 301 vers l'URL de la langue.
  *
  * Seules valeurs propres à un site : ses langues, sa langue par défaut, ses paires de slugs.
@@ -66,7 +67,7 @@ export interface LocaleLink<L extends string = string> extends LocaleInfo<L> {
   href: string;
   /** La page affichée est dans cette langue. */
   current: boolean;
-  /** Une vraie traduction existe ; sinon `href` mène à l'accueil de la langue. */
+  /** Une vraie traduction existe ; sinon `href` mène à la page parente traduite la plus proche, ou à l'accueil. */
   translated: boolean;
 }
 
@@ -244,7 +245,7 @@ export function localeLinks<C extends I18nConfig>(
     else target = translatePath(config, path, locale);
     return {
       ...localeInfo(config, locale),
-      href: absolute(target ?? prefixPath(config, locale, "/"), options.site),
+      href: absolute(target ?? parentFallback(config, path, locale), options.site),
       current: locale === current,
       translated: target !== null,
     };
@@ -376,6 +377,17 @@ export function reservedRoots(config: I18nConfig): Set<string> {
 
 export function publishedLocales<C extends I18nConfig>(config: C): LocaleOf<C>[] {
   return [...(config.published ?? (Object.keys(config.locales) as LocaleOf<C>[]))] as LocaleOf<C>[];
+}
+
+/** Page parente traduite la plus proche dans `locale`, sinon son accueil. */
+function parentFallback<C extends I18nConfig>(config: C, path: string, locale: LocaleOf<C>): string {
+  let current = normalize(splitSuffix(stripOrigin(path)).pathname);
+  while (current !== "/") {
+    current = normalize(current.slice(0, current.lastIndexOf("/")));
+    const translated = translatePath(config, current, locale);
+    if (translated && current !== "/") return normalize(translated);
+  }
+  return prefixPath(config, locale, "/");
 }
 
 function prefixOf(config: I18nConfig, locale: string): string {

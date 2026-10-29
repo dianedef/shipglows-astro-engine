@@ -1,7 +1,7 @@
 ---
 /**
  * Sélecteur de langue sans style : `<nav><ul><li><a hreflang lang>`, le site fournit les classes.
- * Toujours affiché : une langue sans traduction de la page mène à son accueil.
+ * Toujours affiché : une langue sans traduction de la page mène à la page parente traduite la plus proche, sinon à son accueil.
  *
  * Contenu d'un lien : par défaut le libellé (« English ») ou le code (`display="code"` → « EN »).
  * Pour un rendu sur mesure, passer une fonction en enfant : `{(link) => <span>{link.label}</span>}`.
