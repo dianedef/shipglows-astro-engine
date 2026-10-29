@@ -4,7 +4,7 @@ metadata_schema_version: "1.0"
 artifact_version: "1.0.0"
 project: ShipGlows Astro Engine
 created: "2026-10-23"
-updated: "2026-10-28"
+updated: "2026-10-30"
 status: active
 source_skill: sg-docs
 scope: module-map
@@ -53,7 +53,7 @@ data and, when useful, an `.astro` component.
 | `breadcrumbs` | `breadcrumbs`, `breadcrumbs/Breadcrumbs.astro` | Accessible breadcrumb HTML and `BreadcrumbList` JSON-LD from one list of steps; generation from the URL | e22224a | gocharbon (pinned ec1669c, bc0160b1) |
 | `bio` | `bio`, `bio/BioPage.astro` | Standalone link-in-bio document: SEO head with `noindex, follow` default, avatar, links, social icons, copyright year | 5cdbb63 | none yet |
 | `legal` | `legal`, `legal/LegalNotice.astro` | Legal notice from `defineLegalIdentity` (publisher, director, host, IP), fr/en copy, `vercelHost` preset | 7348276 | none yet |
-| `i18n` | `i18n`, `i18n/LanguageSelector.astro` | Locale path conventions, translated slugs, hreflang alternates, middleware rewrite, language selector | adab840 | none yet |
+| `i18n` | `i18n`, `i18n/LanguageSelector.astro` | One URL convention for every site (default language unprefixed, translated slugs declared as pairs, no trailing slash, hreflang code + x-default = default language), legacy 301s, ?lang redirect, middleware rewrite, always-visible selector | adab840, 0b54189, 1fa23da, 9cd0097, 52674cd | dianedefores, replayglows, communityglows, notefinderz, jarretelacoke, bestfriedchicken (`link:`/`file:`, 2026-10-30); gocharbon pending |
 | `fonts` / `base` | `fonts.css`, `base.css` | Self-hosted Inter, Cal Sans and JetBrains Mono with `--sg-font-*` variables (`fonts.css`); `base.css` applies them and thin rounded scrollbars (`--sg-scrollbar-*`). Same fonts as Flutter `shipglows_theme` | 851e66f | none yet |
 | `icons` | `icons`, `icons/Icon.astro` | Base icon names shared with Flutter `shipglows_icons` and the menu model, drawn by `@lucide/astro`; accessible `Icon.astro` with per-site overrides | 851e66f | none yet |
 | `email` | `email` (browser script), `email/NewsletterSignup.astro`, `email/client` (server only) | Public signup form posting to the central service (no secret in the browser; progressive enhancement, status from `?subscription=`), and the server client for service messages and sequence pages (idempotency keys, 429 `Retry-After`, budgets, typed errors without addresses or tokens) | ce commit | none yet; DreamGlows, ReplayGlows, ContentGlows and JarreteLaCoke keep local equivalents until they bump the pin |
