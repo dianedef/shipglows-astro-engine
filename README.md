@@ -315,7 +315,7 @@ Helpers (purs, `config` en premier argument) :
 | `localeLinks` | Un lien par langue publiée (`current`, `translated`, libellé, hreflang, og:locale) |
 | `alternates` / `sitemapLinks` | `hreflang` + `x-default`, vide si la page n'a qu'une langue ; format `@astrojs/sitemap` |
 | `localizedPaths` | Toutes les variantes de chemins (`customPages` du sitemap) |
-| `astroRedirects` | 301 des URL `legacy` (sections : `/old/[...slug]`) pour `redirects` d'`astro.config` |
+| `astroRedirects` | 301 des URL `legacy` (sections : `/old/[slug]`, servies par une page `[slug].astro`) pour `redirects` d'`astro.config` |
 | `localeRedirect` | Pour un middleware : 301 de `?lang=` et du préfixe de la langue par défaut |
 | `rewritePath` | Pour un middleware qui sert une page pour toutes les langues : `/en/carte` → `/carte`, `/fr/confidentialite` → `/privacy` |
 | `matchLocale` / `normalizeLocale` | `en-US`, `fr_BE`, frontmatter → langue (ou défaut) |
@@ -339,11 +339,13 @@ export const onRequest = defineMiddleware((context, next) => {
 });
 ```
 
+Site statique sans adaptateur : les `redirects` d'Astro ne sont que des pages de rafraîchissement en production ; recopier les 301 `legacy` dans `vercel.json` (section : `/old/:slug` → `/new/:slug`).
+
 Pages prérendues : le middleware ne voit pas la requête réelle ; `?lang=` se redirige alors côté hébergeur (`vercel.json`, `has: [{ type: "query", key: "lang" }]`).
 
 ### Sélecteur (`LanguageSelector.astro`)
 
-`<nav aria-label><ul><li><a hreflang lang>` sans style, masqué seulement si le site n'a qu'une langue publiée. Props : `config`, `path` (défaut URL courante), `locale`, `translations`, `showCurrent` (`aria-current="page"`), `display` (`label` « English » ou `code` « EN »), `label` (sans lui, seule la `<ul>` est rendue), `linkLabel`, `linkTitle`, `class`, `listClass`, `itemClass`, `linkClass`. Contenu sur mesure : une fonction en enfant, `{(link) => <span>{link.label}</span>}`.
+`<nav aria-label><ul><li><a hreflang lang>` sans style, masqué seulement si le site n'a qu'une langue publiée. Props : `config`, `path` (défaut URL courante), `locale`, `translations`, `showCurrent` (`aria-current="page"`), `display` (`label` « English » ou `code` « EN »), `label` (sans lui, seule la `<ul>` est rendue), `linkLabel`, `linkTitle`, `class`, `listClass`, `itemClass`, `linkClass`. Contenu sur mesure : une fonction en enfant, `{(link) => <span>{link.label}</span>}`. Les classes passées au sélecteur doivent être globales (utilitaires Tailwind, `<style is:global>` ou `:global()`) : le style scopé d'un composant du site ne s'applique pas au HTML rendu par le module.
 
 ## Mesure d'audience (`/analytics`)
 
