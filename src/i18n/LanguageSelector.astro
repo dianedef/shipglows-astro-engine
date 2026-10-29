@@ -1,6 +1,7 @@
 ---
 /**
  * Sélecteur de langue sans style : `<nav><ul><li><a hreflang lang>`, le site fournit les classes.
+ * Toujours affiché : une langue sans traduction de la page mène à son accueil.
  *
  * Contenu d'un lien : par défaut le libellé (« English ») ou le code (`display="code"` → « EN »).
  * Pour un rendu sur mesure, passer une fonction en enfant : `{(link) => <span>{link.label}</span>}`.
@@ -15,8 +16,6 @@ interface Props {
   locale?: string;
   /** Traductions connues de la page (articles) ; si fourni, fait foi. */
   translations?: Record<string, string | null | undefined>;
-  /** Langues sans traduction : `home` (lien vers leur accueil, défaut) ou `hide`. */
-  fallback?: "home" | "hide";
   /** Afficher aussi la langue courante (`aria-current="page"`). Par défaut non. */
   showCurrent?: boolean;
   display?: "label" | "code";
@@ -36,7 +35,6 @@ const {
   path = Astro.url.pathname,
   locale,
   translations,
-  fallback = "home",
   showCurrent = false,
   display = "label",
   label,
@@ -49,7 +47,7 @@ const {
 } = Astro.props;
 
 const links = localeLinks(config, path, { locale, translations: translations as Record<string, string | null> | undefined })
-  .filter((link) => (link.current ? showCurrent : link.translated || fallback === "home"));
+  .filter((link) => showCurrent || !link.current);
 const customContent = Astro.slots.has("default");
 const contents = await Promise.all(
   links.map((link) => (customContent ? Astro.slots.render("default", [link]) : undefined)),

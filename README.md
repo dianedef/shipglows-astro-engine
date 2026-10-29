@@ -246,22 +246,36 @@ Slots : `intro`, `publisher` et `host` (fin de leur section), `intellectual-prop
 
 ## i18n (`/i18n`)
 
-Langue courante, chemins par langue, alternates hreflang et sélecteur de langue. Les traductions de contenu (textes d'interface, articles) restent dans le site. Aucune convention d'URL imposée : préfixe ou non de la langue par défaut, slugs traduits, sections partagées, `x-default`.
+Une seule convention d'URL pour tous les sites ; un site ne règle que ses langues, sa langue par défaut et ses paires de slugs. Les traductions de contenu (textes d'interface, articles) restent dans le site.
+
+- Langue par défaut sans préfixe, chaque autre langue sous `/<code>` (`/en/pricing`) ; `/<langue par défaut>/…` redirige en 301 vers le chemin sans préfixe.
+- Slugs traduits (`/privacy` ↔ `/fr/confidentialite`), section avant le slug (`/fr/blog/…`), pas de barre finale.
+- `hreflang` = code de langue seul, `x-default` = langue par défaut, seulement sur les pages réellement traduites.
+- Sélecteur toujours visible : une langue sans traduction de la page mène à son accueil.
+- `?lang=<code>` redirige en 301 vers l'URL de la langue.
 
 ```ts
 // src/i18n.config.ts
 import { defineI18nConfig } from "@shipglows/astro-engine/i18n";
 
 export const i18n = defineI18nConfig({
-  locales: { en: {}, fr: { hreflang: "fr", intl: "fr-BE" } },
-  defaultLocale: "en",              // en sans préfixe, fr sous /fr
-  routes: [                         // slugs traduits, chemins complets
+  locales: { en: {}, fr: { intl: "fr-BE" } },  // options : label, ogLocale, intl
+  defaultLocale: "en",
+  routes: [
     { en: "/", fr: "/fr" },
     { en: "/privacy", fr: "/fr/confidentialite" },
-    { en: "/blog", fr: "/blog/fr" },
+    { en: "/features", fr: "/fr/fonctionnalites", legacy: { fr: ["/fr/features"] } }, // 301
+    { en: "/blog", fr: "/fr/blog" },              // index de section
+    { en: "/compare/*", fr: "/fr/comparatif/*" }, // section : même slug final dans les deux langues
   ],
-  sharedPaths: ["/features", "/pricing"], // même slug dans toutes les langues ; défaut : tous
 });
+```
+
+```ts
+// astro.config.mjs : 301 des URL legacy
+import { astroRedirects } from "@shipglows/astro-engine/i18n";
+import { i18n } from "./src/i18n.config";
+export default defineConfig({ redirects: { ...astroRedirects(i18n) } });
 ```
 
 ```astro
@@ -291,41 +305,45 @@ Articles dont la traduction vient du frontmatter (`alternateSlug`, `contentId`) 
 alternates(i18n, Astro.url.pathname, { locale: "fr", translations: { en: "/blog/my-post" }, site: Astro.site });
 ```
 
-Helpers (tous purs, `config` en premier argument) :
+Helpers (purs, `config` en premier argument) :
 
 | Fonction | Rôle |
 | --- | --- |
-| `localeFromPath` / `localeFromUrl` | Langue d'un chemin (paire `routes`, puis préfixe, sinon défaut) ; `localeFromUrl` lit aussi `?<queryParam>=` |
-| `parsePath` / `stripLocale` | Chemin sans préfixe, suffixe `?…#…` conservé ; `unknownLocale` signale un `/de/…` non configuré |
-| `localizedPath` | Lien vers une langue (paire, sinon préfixe) ; externes, ancres et `/api` inchangés |
-| `translatePath` | Équivalent réel de la page dans une langue, ou `null` |
+| `localeFromPath` / `parsePath` / `stripLocale` | Langue d'un chemin, chemin sans préfixe (suffixe `?…#…` conservé) ; `unknownLocale` signale un `/de/…` non configuré |
+| `localizedPath` | Lien vers une langue : paire de `routes`, sinon préfixe ; externes, ancres et `/api` inchangés |
+| `translatePath` | Équivalent déclaré de la page dans une langue, ou `null` |
 | `localeLinks` | Un lien par langue publiée (`current`, `translated`, libellé, hreflang, og:locale) |
 | `alternates` / `sitemapLinks` | `hreflang` + `x-default`, vide si la page n'a qu'une langue ; format `@astrojs/sitemap` |
 | `localizedPaths` | Toutes les variantes de chemins (`customPages` du sitemap) |
-| `rewritePath` | Pour un middleware qui sert `/en/carte` avec la page `/carte` : cible de `context.rewrite()` ou `null` |
+| `astroRedirects` | 301 des URL `legacy` (sections : `/old/[...slug]`) pour `redirects` d'`astro.config` |
+| `localeRedirect` | Pour un middleware : 301 de `?lang=` et du préfixe de la langue par défaut |
+| `rewritePath` | Pour un middleware qui sert une page pour toutes les langues : `/en/carte` → `/carte`, `/fr/confidentialite` → `/privacy` |
 | `matchLocale` / `normalizeLocale` | `en-US`, `fr_BE`, frontmatter → langue (ou défaut) |
 | `pickLocalized` | Valeur `{ fr, en }` dans la langue voulue, repli défaut puis première non vide |
-| `reservedRoots` | Préfixes de langue et racines non localisées, à refuser comme slug |
+| `reservedRoots` | Codes de langue et racines non localisées, à refuser comme slug |
 
-Options de config : `prefixDefaultLocale` (langue par défaut aussi préfixée, les chemins sans préfixe lui restent attribués), `published` (langues exposées), `xDefault` (langue ou `false`), `trailingSlash` (`never` par défaut, `always`), `unlocalizedPaths` (défaut `/api`, `/_astro`), `queryParam`, `notLocales`. Par langue : `prefix`, `hreflang`, `lang`, `ogLocale`, `label`, `intl` (défauts tirés du code).
-
-Middleware de réécriture (une page pour toutes les langues) :
+Autres options : `published` (langues exposées, ex. `es` en préparation), `unlocalizedPaths` (défaut `/api`, `/_astro`).
 
 ```ts
+// src/middleware.ts
 import { defineMiddleware } from "astro:middleware";
-import { localeFromPath, rewritePath } from "@shipglows/astro-engine/i18n";
+import { localeFromPath, localeRedirect, rewritePath } from "@shipglows/astro-engine/i18n";
 import { i18n } from "./i18n.config";
 
 export const onRequest = defineMiddleware((context, next) => {
+  const redirect = context.isPrerendered ? null : localeRedirect(i18n, context.url);
+  if (redirect) return context.redirect(redirect, 301);
   context.locals.locale = localeFromPath(i18n, context.url.pathname);
-  const target = rewritePath(i18n, context.url.pathname, { paths: ["/", "/parcours/*"] });
+  const target = rewritePath(i18n, context.url.pathname); // seulement si une page sert toutes les langues
   return target ? context.rewrite(new URL(`${target}${context.url.search}`, context.url)) : next();
 });
 ```
 
+Pages prérendues : le middleware ne voit pas la requête réelle ; `?lang=` se redirige alors côté hébergeur (`vercel.json`, `has: [{ type: "query", key: "lang" }]`).
+
 ### Sélecteur (`LanguageSelector.astro`)
 
-`<nav aria-label><ul><li><a hreflang lang>` sans style ; masqué s'il n'y a pas d'autre langue. Props : `config`, `path` (défaut URL courante), `locale`, `translations`, `fallback` (`home` : lien vers l'accueil de la langue sans traduction, défaut ; `hide`), `showCurrent` (`aria-current="page"`), `display` (`label` « English » ou `code` « EN »), `label` (sans lui, seule la `<ul>` est rendue), `linkLabel`, `linkTitle`, `class`, `listClass`, `itemClass`, `linkClass`. Contenu sur mesure : une fonction en enfant, `{(link) => <span>{link.label}</span>}`.
+`<nav aria-label><ul><li><a hreflang lang>` sans style, masqué seulement si le site n'a qu'une langue publiée. Props : `config`, `path` (défaut URL courante), `locale`, `translations`, `showCurrent` (`aria-current="page"`), `display` (`label` « English » ou `code` « EN »), `label` (sans lui, seule la `<ul>` est rendue), `linkLabel`, `linkTitle`, `class`, `listClass`, `itemClass`, `linkClass`. Contenu sur mesure : une fonction en enfant, `{(link) => <span>{link.label}</span>}`.
 
 ## Mesure d'audience (`/analytics`)
 

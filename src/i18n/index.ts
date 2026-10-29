@@ -1,63 +1,62 @@
 /**
- * i18n légère et sans style : langue courante, chemins par langue, alternates hreflang.
+ * i18n commune aux sites ShipGlows, sans style. Une seule convention d'URL pour tous :
+ *
+ * - la langue par défaut n'a pas de préfixe, chaque autre langue est sous `/<code>` ;
+ * - les slugs sont traduits, chaque paire est déclarée dans `routes` (articles : `translations`) ;
+ * - la section précède le slug (`/fr/blog/…`), pas de barre finale ;
+ * - `hreflang` = code de langue seul, `x-default` = langue par défaut, seulement sur les pages traduites ;
+ * - le sélecteur est toujours là : sans traduction, il mène à l'accueil de la langue ;
+ * - `?lang=<code>` redirige en 301 vers l'URL de la langue.
+ *
+ * Seules valeurs propres à un site : ses langues, sa langue par défaut, ses paires de slugs.
  * Les traductions de contenu (textes d'interface, articles) restent dans chaque site.
  */
 
-/** Une langue du site. Tout est optionnel : les valeurs par défaut dérivent du code. */
+/** Une langue du site. Le préfixe d'URL, `lang` et `hreflang` sont toujours le code. */
 export interface LocaleDefinition {
-  /** Segment d'URL (`en` → `/en/…`). Par défaut le code. Ignoré pour la langue par défaut sans préfixe. */
-  prefix?: string;
-  /** Valeur `hreflang` (ex. `fr-fr`). Par défaut le code. */
-  hreflang?: string;
-  /** Valeur de `lang` sur <html> et sur les liens. Par défaut le code. */
-  lang?: string;
-  /** `og:locale` (ex. `fr_FR`). Par défaut déduit des langues courantes. */
-  ogLocale?: string;
-  /** Nom affiché dans le sélecteur, dans sa propre langue (« Français »). */
+  /** Nom affiché dans le sélecteur, dans sa propre langue. Par défaut « Français », « English »… */
   label?: string;
-  /** Locale `Intl` pour dates et nombres (ex. `fr-BE`). Par défaut `lang`. */
+  /** `og:locale` (ex. `fr_FR`). Par défaut déduit du code. */
+  ogLocale?: string;
+  /** Locale `Intl` pour dates et nombres (ex. `fr-BE`). Par défaut le code. */
   intl?: string;
 }
 
+/**
+ * Une page et ses traductions, en chemins complets : `{ en: "/privacy", fr: "/fr/confidentialite" }`.
+ * Une section dont chaque page existe dans toutes ses langues avec le même slug final :
+ * `{ en: "/compare/*", fr: "/fr/comparatif/*" }` (`/compare/glasp` ↔ `/fr/comparatif/glasp`).
+ * L'index d'une section se déclare à part ; une paire exacte l'emporte sur une section.
+ */
+export type Route<L extends string = string> = Partial<Record<L, string>> & {
+  /** Anciennes URL de la page, redirigées en 301 vers la langue correspondante (`astroRedirects`). */
+  legacy?: Partial<Record<L, readonly string[]>>;
+};
+
 export interface I18nConfig<L extends string = string> {
-  /** Langues du site ; l'ordre des clés est l'ordre d'affichage. */
+  /** Langues du site, codes ISO 639-1 (`fr`, `en`) ; l'ordre des clés est l'ordre d'affichage. */
   locales: Record<L, LocaleDefinition>;
   defaultLocale: L;
-  /** Préfixer aussi la langue par défaut (`/fr/…`). Les chemins sans préfixe restent attribués à la langue par défaut. */
-  prefixDefaultLocale?: boolean;
   /** Langues publiées (alternates, sélecteur, réécriture). Par défaut toutes. */
   published?: readonly L[];
   /**
-   * Paires de slugs traduits, en chemins complets :
-   * `{ en: "/privacy", fr: "/fr/confidentialite" }`. Prioritaires sur la règle de préfixe.
-   * Une langue absente d'une paire = pas de traduction pour cette page.
+   * Pages traduites. Une langue absente d'une paire = pas de traduction : ni hreflang ni lien direct.
+   * Un chemin hors de `routes` n'a pas d'alternate, sauf `translations` passées par la page.
    */
-  routes?: readonly Partial<Record<L, string>>[];
-  /**
-   * Chemins (sans préfixe) qui existent dans toutes les langues avec le même slug.
-   * `true` (défaut) : tous. Une liste : seulement ceux-là ; `"/parcours/*"` couvre la section.
-   */
-  sharedPaths?: true | readonly string[];
-  /** Langue visée par `hreflang="x-default"` ; `false` pour ne pas en émettre. Par défaut la langue par défaut. */
-  xDefault?: L | false;
-  /** Barre finale des chemins produits. Par défaut `never` (la racine reste `/`). */
-  trailingSlash?: "never" | "always";
+  routes?: readonly Route<L>[];
   /** Chemins jamais localisés, rendus tels quels. Par défaut `/api` et `/_astro`. */
   unlocalizedPaths?: readonly string[];
-  /** Paramètre de requête qui force la langue (`?lang=fr`), lu par `localeFromUrl`. */
-  queryParam?: string;
-  /** Racines de deux lettres qui ne sont pas des langues (ex. `rh`), pour `parsePath().unknownLocale`. */
-  notLocales?: readonly string[];
 }
 
 export type LocaleOf<C> = C extends I18nConfig<infer L> ? L : string;
 
 export interface LocaleInfo<L extends string = string> {
   code: L;
-  /** Segment d'URL effectif, vide pour la langue par défaut sans préfixe. */
+  /** Segment d'URL, vide pour la langue par défaut. */
   prefix: string;
-  hreflang: string;
+  /** `lang` de <html> et `hreflang` : le code. */
   lang: string;
+  hreflang: string;
   ogLocale: string;
   label: string;
   intl: string;
@@ -67,7 +66,7 @@ export interface LocaleLink<L extends string = string> extends LocaleInfo<L> {
   href: string;
   /** La page affichée est dans cette langue. */
   current: boolean;
-  /** Une vraie traduction existe ; sinon `href` pointe vers l'accueil de la langue. */
+  /** Une vraie traduction existe ; sinon `href` mène à l'accueil de la langue. */
   translated: boolean;
 }
 
@@ -88,8 +87,18 @@ export interface LinkOptions<L extends string = string> {
   site?: string | URL;
 }
 
+export interface ParsedPath<L extends string = string> {
+  locale: L;
+  /** Chemin sans préfixe de langue, normalisé. */
+  path: string;
+  /** `?…#…` d'origine. */
+  suffix: string;
+  /** Premier segment qui ressemble à une langue non configurée (`/de/…`) : la page n'est sans doute pas à servir. */
+  unknownLocale?: string;
+}
+
 const DEFAULT_UNLOCALIZED = ["/api", "/_astro"];
-const LANGUAGE_TAG = /^[a-z]{2}(?:-[a-z0-9]{2,8})*$/i;
+const LANGUAGE_CODE = /^[a-z]{2}$/;
 const KNOWN: Record<string, { label: string; ogLocale: string }> = {
   fr: { label: "Français", ogLocale: "fr_FR" },
   en: { label: "English", ogLocale: "en_US" },
@@ -105,27 +114,37 @@ export function defineI18nConfig<const L extends string>(config: I18nConfig<L>):
   const check = (locale: string, where: string) => {
     if (!codes.includes(locale as L)) throw new Error(`i18n : « ${locale} » (${where}) n'est pas dans locales.`);
   };
+  for (const code of codes) {
+    if (!LANGUAGE_CODE.test(code)) throw new Error(`i18n : « ${code} » doit être un code de langue à deux lettres minuscules.`);
+  }
   check(config.defaultLocale, "defaultLocale");
   for (const locale of config.published ?? []) check(locale, "published");
-  if (config.xDefault) check(config.xDefault, "xDefault");
-
-  const prefixes = new Set<string>();
-  for (const code of codes) {
-    const prefix = localeInfo(config, code).prefix;
-    if (!prefix) continue;
-    if (prefixes.has(prefix)) throw new Error(`i18n : le préfixe « ${prefix} » est utilisé par deux langues.`);
-    prefixes.add(prefix);
-  }
 
   const seen = new Set<string>();
+  const claim = (path: string) => {
+    if (!path.startsWith("/")) throw new Error(`i18n : le chemin « ${path} » de routes doit commencer par /.`);
+    const key = normalize(path);
+    if (seen.has(key)) throw new Error(`i18n : le chemin « ${path} » apparaît deux fois dans routes.`);
+    seen.add(key);
+  };
   for (const route of config.routes ?? []) {
-    for (const [locale, path] of Object.entries(route) as [string, string][]) {
-      if (!path) continue;
+    for (const [locale, path] of routeEntries(route)) {
       check(locale, `routes ${path}`);
-      if (!path.startsWith("/")) throw new Error(`i18n : le chemin « ${path} » de routes doit commencer par /.`);
-      const key = normalize(path);
-      if (seen.has(key)) throw new Error(`i18n : le chemin « ${path} » apparaît dans deux paires de routes.`);
-      seen.add(key);
+      claim(path);
+      if (path.includes("*") && !path.endsWith("/*")) throw new Error(`i18n : « ${path} » : * seulement en fin de chemin (/section/*).`);
+      const expected = prefixOf(config, locale as L);
+      if (expected && normalize(path).split("/")[1] !== expected) {
+        throw new Error(`i18n : « ${path} » (${locale}) doit commencer par /${expected}.`);
+      }
+    }
+    for (const [locale, paths] of Object.entries(route.legacy ?? {}) as [string, readonly string[]][]) {
+      check(locale, "routes legacy");
+      for (const path of paths) {
+        claim(path);
+        if (path.endsWith("/*") && !route[locale as L]?.endsWith("/*")) {
+          throw new Error(`i18n : legacy « ${path} » est une section, la paire ${locale} doit l'être aussi.`);
+        }
+      }
     }
   }
   return config;
@@ -138,27 +157,23 @@ export function isLocale<C extends I18nConfig>(config: C, value: unknown): value
 /** Valeurs effectives d'une langue (préfixe, hreflang, og:locale, libellé…). */
 export function localeInfo<C extends I18nConfig>(config: C, locale: LocaleOf<C>): LocaleInfo<LocaleOf<C>> {
   const definition = (config.locales as Record<string, LocaleDefinition>)[locale] ?? {};
-  const isUnprefixedDefault = locale === config.defaultLocale && !config.prefixDefaultLocale;
-  const lang = definition.lang ?? locale;
-  const known = KNOWN[lang.split("-")[0].toLowerCase()];
+  const known = KNOWN[locale];
   return {
     code: locale,
-    prefix: isUnprefixedDefault ? "" : (definition.prefix ?? locale),
-    hreflang: definition.hreflang ?? lang,
-    lang,
-    ogLocale: definition.ogLocale ?? known?.ogLocale ?? lang.replace("-", "_"),
+    prefix: prefixOf(config, locale),
+    lang: locale,
+    hreflang: locale,
+    ogLocale: definition.ogLocale ?? known?.ogLocale ?? `${locale}_${locale.toUpperCase()}`,
     label: definition.label ?? known?.label ?? locale.toUpperCase(),
-    intl: definition.intl ?? lang,
+    intl: definition.intl ?? locale,
   };
 }
 
 /** Langue d'une valeur libre (`en-US`, `fr_BE`, frontmatter, Accept-Language), sinon `undefined`. */
 export function matchLocale<C extends I18nConfig>(config: C, value: string | null | undefined): LocaleOf<C> | undefined {
   if (!value) return undefined;
-  const normalized = value.trim().toLowerCase().replace(/_/g, "-");
-  const codes = localeCodes(config);
-  return codes.find((code) => code.toLowerCase() === normalized)
-    ?? codes.find((code) => code.toLowerCase() === normalized.split("-")[0]);
+  const code = value.trim().toLowerCase().replace(/_/g, "-").split("-")[0];
+  return isLocale(config, code) ? code : undefined;
 }
 
 /** Comme `matchLocale`, avec repli sur la langue par défaut. */
@@ -166,48 +181,24 @@ export function normalizeLocale<C extends I18nConfig>(config: C, value: string |
   return matchLocale(config, value) ?? (config.defaultLocale as LocaleOf<C>);
 }
 
-export interface ParsedPath<L extends string = string> {
-  locale: L;
-  /** Chemin sans préfixe de langue, normalisé selon `trailingSlash`. */
-  path: string;
-  /** `?…#…` d'origine. */
-  suffix: string;
-  /** Premier segment qui ressemble à une langue non configurée (`/de/…`) : la page n'est sans doute pas à servir. */
-  unknownLocale?: string;
-}
-
 /** Découpe un chemin : langue, chemin sans préfixe, suffixe. */
 export function parsePath<C extends I18nConfig>(config: C, path: string): ParsedPath<LocaleOf<C>> {
   const { pathname, suffix } = splitSuffix(stripOrigin(path));
   const normalized = normalize(pathname);
-  const routeLocale = findRoute(config, normalized)?.locale;
   const first = normalized.split("/")[1] ?? "";
-  const prefixed = localeCodes(config).find((code) => {
-    const prefix = localeInfo(config, code).prefix;
-    return prefix !== "" && prefix === first;
-  });
-  const rest = prefixed ? normalize(normalized.slice(first.length + 1)) : normalized;
+  const prefixed = isLocale(config, first) && first !== config.defaultLocale ? first : undefined;
   const parsed: ParsedPath<LocaleOf<C>> = {
-    locale: routeLocale ?? prefixed ?? (config.defaultLocale as LocaleOf<C>),
-    path: format(config, rest),
+    locale: prefixed ?? findRoute(config, normalized)?.locale ?? (config.defaultLocale as LocaleOf<C>),
+    path: prefixed ? normalize(normalized.slice(first.length + 1)) : normalized,
     suffix,
   };
-  if (!prefixed && first && LANGUAGE_TAG.test(first) && !config.notLocales?.includes(first.toLowerCase())) {
-    parsed.unknownLocale = first;
-  }
+  if (!prefixed && LANGUAGE_CODE.test(first) && !isLocale(config, first)) parsed.unknownLocale = first;
   return parsed;
 }
 
-/** Langue d'un chemin : paire de `routes`, puis préfixe, sinon langue par défaut. */
+/** Langue d'un chemin : préfixe, sinon langue par défaut. */
 export function localeFromPath<C extends I18nConfig>(config: C, path: string): LocaleOf<C> {
   return parsePath(config, path).locale;
-}
-
-/** Comme `localeFromPath`, mais `?<queryParam>=<langue>` l'emporte quand `queryParam` est configuré. */
-export function localeFromUrl<C extends I18nConfig>(config: C, url: string | URL): LocaleOf<C> {
-  const parsed = new URL(url, "http://localhost");
-  const forced = config.queryParam ? parsed.searchParams.get(config.queryParam) : null;
-  return isLocale(config, forced) ? forced : localeFromPath(config, parsed.pathname);
 }
 
 /** Chemin sans préfixe de langue, suffixe `?…#…` conservé. */
@@ -217,39 +208,29 @@ export function stripLocale<C extends I18nConfig>(config: C, path: string): stri
 }
 
 /**
- * Chemin d'un lien vers `locale` : paire de `routes`, sinon règle de préfixe.
+ * Chemin d'un lien vers `locale` : paire de `routes`, sinon préfixe ajouté au chemin.
  * Les URL externes, ancres et `unlocalizedPaths` sont rendues telles quelles.
  */
 export function localizedPath<C extends I18nConfig>(config: C, path: string, locale: LocaleOf<C>): string {
   if (!isLocalizable(config, path)) return path;
   const { pathname, suffix } = splitSuffix(path);
-  const route = findRoute(config, normalize(pathname))?.route;
-  const translated = route?.[locale];
-  if (translated) return `${format(config, translated)}${suffix}`;
+  const translated = findRoute(config, normalize(pathname))?.pathFor(locale);
+  if (translated) return `${translated}${suffix}`;
   return `${prefixPath(config, locale, parsePath(config, pathname).path)}${suffix}`;
 }
 
-/**
- * Équivalent de la page dans `locale`, ou `null` s'il n'existe pas
- * (paire sans cette langue, chemin hors `sharedPaths`, chemin non localisé).
- */
+/** Équivalent de la page dans `locale` d'après `routes`, ou `null` s'il n'est pas déclaré. */
 export function translatePath<C extends I18nConfig>(config: C, path: string, locale: LocaleOf<C>): string | null {
   const local = stripOrigin(path);
   if (!isLocalizable(config, local)) return null;
   const { pathname, suffix } = splitSuffix(local);
   const normalized = normalize(pathname);
-  const match = findRoute(config, normalized);
-  if (match) {
-    const translated = match.route[locale];
-    return translated ? `${format(config, translated)}${suffix}` : null;
-  }
-  const parsed = parsePath(config, normalized);
-  if (parsed.locale === locale) return `${format(config, normalized)}${suffix}`;
-  if (!matchesPaths(config.sharedPaths ?? true, parsed.path)) return null;
-  return `${prefixPath(config, locale, parsed.path)}${suffix}`;
+  if (localeFromPath(config, normalized) === locale) return `${normalized}${suffix}`;
+  const translated = findRoute(config, normalized)?.pathFor(locale);
+  return translated ? `${translated}${suffix}` : null;
 }
 
-/** Un lien par langue publiée, pour un sélecteur ou les `og:locale:alternate`. */
+/** Un lien par langue publiée, pour le sélecteur et les `og:locale:alternate`. */
 export function localeLinks<C extends I18nConfig>(
   config: C,
   path: string,
@@ -258,13 +239,12 @@ export function localeLinks<C extends I18nConfig>(
   const current = options.locale ?? localeFromPath(config, path);
   return publishedLocales(config).map((locale) => {
     let target: string | null;
-    if (locale === current) target = format(config, splitSuffix(stripOrigin(path)).pathname);
-    else if (options.translations) target = formatOptional(config, options.translations[locale]);
+    if (locale === current) target = normalize(splitSuffix(stripOrigin(path)).pathname);
+    else if (options.translations) target = options.translations[locale] ? normalize(options.translations[locale]!) : null;
     else target = translatePath(config, path, locale);
-    const href = target ?? prefixPath(config, locale, "/");
     return {
       ...localeInfo(config, locale),
-      href: absolute(href, options.site),
+      href: absolute(target ?? prefixPath(config, locale, "/"), options.site),
       current: locale === current,
       translated: target !== null,
     };
@@ -272,7 +252,7 @@ export function localeLinks<C extends I18nConfig>(
 }
 
 /**
- * Balises `<link rel="alternate" hreflang>` de la page : langues traduites + `x-default`.
+ * Balises `<link rel="alternate" hreflang>` de la page : langues traduites + `x-default` (langue par défaut).
  * Vide quand la page n'existe que dans une langue.
  */
 export function alternates<C extends I18nConfig>(
@@ -283,8 +263,7 @@ export function alternates<C extends I18nConfig>(
   const links = localeLinks(config, path, options).filter((link) => link.translated);
   if (links.length < 2) return [];
   const result: Alternate[] = links.map(({ hreflang, href }) => ({ hreflang, href }));
-  const xDefault = config.xDefault ?? config.defaultLocale;
-  const fallback = xDefault === false ? undefined : links.find((link) => link.code === xDefault);
+  const fallback = links.find((link) => link.code === config.defaultLocale);
   if (fallback) result.push({ hreflang: "x-default", href: fallback.href });
   return result;
 }
@@ -314,21 +293,61 @@ export function localizedPaths<C extends I18nConfig>(
   return [...result];
 }
 
+/** Redirections 301 des URL `legacy` de `routes`, au format `redirects` d'`astro.config`. */
+export function astroRedirects<C extends I18nConfig>(config: C): Record<string, { status: 301; destination: string }> {
+  const redirects: Record<string, { status: 301; destination: string }> = {};
+  for (const route of config.routes ?? []) {
+    for (const [locale, paths] of Object.entries(route.legacy ?? {}) as [LocaleOf<C>, readonly string[]][]) {
+      const destination = route[locale];
+      if (!destination) throw new Error(`i18n : legacy ${locale} sans chemin ${locale} dans la paire.`);
+      for (const path of paths) {
+        const section = (value: string) => `${normalize(value.slice(0, -2))}/[...slug]`;
+        if (path.endsWith("/*")) redirects[section(path)] = { status: 301, destination: section(destination) };
+        else redirects[normalize(path)] = { status: 301, destination: normalize(destination) };
+      }
+    }
+  }
+  return redirects;
+}
+
 /**
- * Pour un middleware qui sert une seule page pour toutes les langues (`/en/carte` → page `/carte`) :
- * le chemin à passer à `context.rewrite()`, ou `null` s'il n'y a rien à réécrire.
- * `paths` limite la réécriture à certaines sections (`"/parcours/*"`).
+ * Pour un middleware : URL vers laquelle rediriger en 301, ou `null`.
+ * `?lang=<code>` → même page dans cette langue (paire de `routes`, sinon préfixe), paramètre retiré ;
+ * `/<langue par défaut>/…` → chemin sans préfixe.
+ */
+export function localeRedirect<C extends I18nConfig>(config: C, url: URL): string | null {
+  const pathname = normalize(url.pathname);
+  const first = pathname.split("/")[1];
+  const requested = url.searchParams.get("lang");
+  const hasDefaultPrefix = first === config.defaultLocale;
+  if (requested === null && !hasDefaultPrefix) return null;
+
+  let path = hasDefaultPrefix ? normalize(pathname.slice(first.length + 1)) : pathname;
+  const locale = matchLocale(config, requested);
+  if (locale) path = translatePath(config, path, locale) ?? localizedPath(config, path, locale);
+  const search = new URLSearchParams(url.search);
+  search.delete("lang");
+  const query = search.size ? `?${search}` : "";
+  return `${path}${query}${url.hash}`;
+}
+
+/**
+ * Pour un middleware qui sert une seule page pour toutes les langues : chemin de la page à rendre
+ * (`context.rewrite()`), ou `null`. `/en/carte` → `/carte` ; avec `routes`, `/fr/confidentialite` → `/privacy`
+ * (chemin de la langue par défaut). `paths` limite la réécriture à certaines sections (`"/parcours/*"`).
  */
 export function rewritePath<C extends I18nConfig>(
   config: C,
   pathname: string,
-  options: { paths?: true | readonly string[] } = {},
+  options: { paths?: readonly string[] } = {},
 ): string | null {
-  const parsed = parsePath(config, pathname);
-  if (!localeInfo(config, parsed.locale).prefix || !publishedLocales(config).includes(parsed.locale)) return null;
-  if (parsed.path === format(config, pathname)) return null;
-  if (isUnlocalized(config, parsed.path) || !matchesPaths(options.paths ?? true, parsed.path)) return null;
-  return parsed.path;
+  const normalized = normalize(pathname);
+  const parsed = parsePath(config, normalized);
+  if (parsed.locale === config.defaultLocale || !publishedLocales(config).includes(parsed.locale)) return null;
+  const rendered = findRoute(config, normalized)?.pathFor(config.defaultLocale as LocaleOf<C>) ?? parsed.path;
+  if (rendered === normalized || isUnlocalized(config, rendered)) return null;
+  if (options.paths && !matchesPaths(options.paths, rendered)) return null;
+  return rendered;
 }
 
 /** Texte ou valeur dans la langue voulue, avec repli sur la langue par défaut puis la première valeur non vide. */
@@ -345,13 +364,9 @@ export function pickLocalized<C extends I18nConfig, T>(
   return Object.values(record).find(filled);
 }
 
-/** Segments de premier niveau à ne pas utiliser comme slug de contenu (préfixes de langue + chemins non localisés). */
+/** Segments de premier niveau à ne pas utiliser comme slug de contenu (codes de langue + chemins non localisés). */
 export function reservedRoots(config: I18nConfig): Set<string> {
-  const roots = new Set<string>();
-  for (const code of localeCodes(config)) {
-    const prefix = localeInfo(config, code).prefix;
-    if (prefix) roots.add(prefix);
-  }
+  const roots = new Set<string>(Object.keys(config.locales));
   for (const path of config.unlocalizedPaths ?? DEFAULT_UNLOCALIZED) {
     const root = path.split("/")[1];
     if (root) roots.add(root);
@@ -360,27 +375,53 @@ export function reservedRoots(config: I18nConfig): Set<string> {
 }
 
 export function publishedLocales<C extends I18nConfig>(config: C): LocaleOf<C>[] {
-  return [...(config.published ?? localeCodes(config))] as LocaleOf<C>[];
+  return [...(config.published ?? (Object.keys(config.locales) as LocaleOf<C>[]))] as LocaleOf<C>[];
 }
 
-function localeCodes<C extends I18nConfig>(config: C): LocaleOf<C>[] {
-  return Object.keys(config.locales) as LocaleOf<C>[];
+function prefixOf(config: I18nConfig, locale: string): string {
+  return locale === config.defaultLocale ? "" : locale;
 }
 
+function routeEntries(route: Route): [string, string][] {
+  return Object.entries(route).filter((entry): entry is [string, string] => entry[0] !== "legacy" && typeof entry[1] === "string");
+}
+
+/** Paire qui couvre le chemin : exacte d'abord, sinon la section la plus longue. */
 function findRoute<C extends I18nConfig>(config: C, normalized: string) {
-  for (const route of config.routes ?? []) {
-    for (const [locale, path] of Object.entries(route) as [LocaleOf<C>, string][]) {
-      if (path && normalize(path) === normalized) return { route: route as Partial<Record<LocaleOf<C>, string>>, locale };
+  type L = LocaleOf<C>;
+  let best: { route: Route<L>; locale: L; rest: string; depth: number } | undefined;
+  for (const route of (config.routes ?? []) as readonly Route<L>[]) {
+    for (const [locale, path] of routeEntries(route)) {
+      if (!path.endsWith("/*")) {
+        if (normalize(path) === normalized) return resolved(route, locale as L, "");
+        continue;
+      }
+      const base = normalize(path.slice(0, -2));
+      const prefix = base === "/" ? "/" : `${base}/`;
+      if (normalized.startsWith(prefix) && normalized !== base && (!best || base.length > best.depth)) {
+        best = { route, locale: locale as L, rest: normalized.slice(prefix.length), depth: base.length };
+      }
     }
   }
-  return undefined;
+  return best ? resolved(best.route, best.locale, best.rest) : undefined;
 }
 
-function prefixPath<C extends I18nConfig>(config: C, locale: LocaleOf<C>, unprefixed: string): string {
-  const prefix = localeInfo(config, locale).prefix;
+function resolved<L extends string>(route: Route<L>, locale: L, rest: string) {
+  return {
+    locale,
+    pathFor(target: L): string | undefined {
+      const path = route[target] as string | undefined;
+      if (!path) return undefined;
+      return path.endsWith("/*") ? normalize(`${path.slice(0, -2)}/${rest}`) : normalize(path);
+    },
+  };
+}
+
+function prefixPath(config: I18nConfig, locale: string, unprefixed: string): string {
+  const prefix = prefixOf(config, locale);
   const rest = normalize(unprefixed);
-  if (!prefix) return format(config, rest);
-  return format(config, rest === "/" ? `/${prefix}` : `/${prefix}${rest}`);
+  if (!prefix) return rest;
+  return rest === "/" ? `/${prefix}` : `/${prefix}${rest}`;
 }
 
 function isLocalizable(config: I18nConfig, path: string): boolean {
@@ -396,8 +437,7 @@ function isUnlocalized(config: I18nConfig, path: string): boolean {
   });
 }
 
-function matchesPaths(paths: true | readonly string[], path: string): boolean {
-  if (paths === true) return true;
+function matchesPaths(paths: readonly string[], path: string): boolean {
   const normalized = normalize(path);
   return paths.some((entry) => {
     if (entry.endsWith("/*")) {
@@ -425,18 +465,4 @@ function splitSuffix(path: string): { pathname: string; suffix: string } {
 function normalize(pathname: string): string {
   const withSlash = pathname.startsWith("/") ? pathname : `/${pathname}`;
   return withSlash.replace(/\/{2,}/g, "/").replace(/\/+$/, "") || "/";
-}
-
-function formatOptional(config: I18nConfig, path: string | null | undefined): string | null {
-  if (!path) return null;
-  if (!path.startsWith("/")) return path;
-  const { pathname, suffix } = splitSuffix(path);
-  return `${format(config, pathname)}${suffix}`;
-}
-
-function format(config: I18nConfig, pathname: string): string {
-  const normalized = normalize(pathname);
-  if (normalized === "/" || config.trailingSlash !== "always") return normalized;
-  const last = normalized.slice(normalized.lastIndexOf("/") + 1);
-  return last.includes(".") ? normalized : `${normalized}/`;
 }
