@@ -21,7 +21,13 @@ export function readContentManifest(siteRoot) {
   const manifest = JSON.parse(readFileSync(file, 'utf8'));
   if (manifest.schema !== 'shipglows-content/v1') throw new Error(`Unsupported content manifest schema: ${manifest.schema}`);
   if (!manifest.locales?.includes(manifest.defaultLocale)) throw new Error('defaultLocale must be one of locales');
+  if (manifest.trailingSlash !== undefined && !['never', 'always'].includes(manifest.trailingSlash)) throw new Error('trailingSlash must be "never" or "always"');
   return manifest;
+}
+
+/** Site-wide URL shape: `trailingSlash` ("never" by default, or "always") must match the Astro `trailingSlash` setting. */
+function finishUrl(manifest, url) {
+  return manifest.trailingSlash === 'always' && !url.endsWith('/') ? `${url}/` : url;
 }
 
 export function localePrefix(manifest, locale) {
@@ -69,13 +75,13 @@ export function nodeUrl(manifest, taxonomy, locale, id) {
   const path = nodePath(taxonomy, id);
   const pillar = path[0].labels[locale].slug;
   const prefix = localePrefix(manifest, locale);
-  return path.length === 1 ? `${prefix}/${pillar}` : `${prefix}/${pillar}/${path.at(-1).labels[locale].slug}`;
+  return finishUrl(manifest, path.length === 1 ? `${prefix}/${pillar}` : `${prefix}/${pillar}/${path.at(-1).labels[locale].slug}`);
 }
 
 export function articleUrl(manifest, taxonomy, locale, slug, topic) {
   const pillar = nodePath(taxonomy, topic)[0];
   if (!pillar) throw new Error(`Unknown topic ${topic} for ${locale}/${slug}`);
-  return `${localePrefix(manifest, locale)}/${pillar.labels[locale].slug}/${slug}`;
+  return finishUrl(manifest, `${localePrefix(manifest, locale)}/${pillar.labels[locale].slug}/${slug}`);
 }
 
 export function splitFrontmatter(raw) {
