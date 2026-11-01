@@ -1,6 +1,6 @@
 {
   "name": "@shipglows/astro-engine",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Logique partagée pour les sites Astro ShipGlows, plus polices, barres de défilement et icônes de base.",
   "private": true,
   "type": "module",
@@ -31,13 +31,16 @@
     "./analytics": "./src/analytics/index.ts",
     "./analytics/tracker": "./src/analytics/tracker.ts",
     "./analytics/Analytics.astro": "./src/analytics/Analytics.astro",
-    "./analytics/AnalyticsOptOut.astro": "./src/analytics/AnalyticsOptOut.astro"
+    "./analytics/AnalyticsOptOut.astro": "./src/analytics/AnalyticsOptOut.astro",
+    "./content": "./src/content/index.ts",
+    "./content/model": "./src/content/model.mjs"
   },
   "files": [
     "src"
   ],
   "dependencies": {
-    "@lucide/astro": "^1.30.0"
+    "@lucide/astro": "^1.30.0",
+    "yaml": "^2"
   },
   "peerDependencies": {
     "astro": ">=5"

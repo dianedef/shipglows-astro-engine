@@ -368,6 +368,95 @@ import Analytics from "@shipglows/astro-engine/analytics/Analytics.astro";
 - Bandeau (mode consenti, finalité marketing) : appeler `setAnalyticsConsent(true|false)` de `@shipglows/astro-engine/analytics` ; les UTM partent alors avec les pages vues. Choix valable 6 mois.
 - Le domaine du site doit être un domaine de travail vérifié du projet ContentGlows ; remplace le script injecté `/a/s.js`.
 
+## Contenu (`/content`, `/content/model`)
+
+Modèle d'arborescence éditoriale partagé : une collection `articles` avec un dossier par locale, une taxonomie unique (`taxonomy.yaml`), URL `/<pilier>/<slug>`, fil d'Ariane, hubs, wikilinks `[[slug]]` résolus, redirections permanentes et graphe des contenus. Référence : `skills/references/content-tree-model.md` du dépôt ShipGlows. Le kit fournit la logique ; le site garde son HTML, son style et son schéma Zod de collection.
+
+Deux points d'entrée :
+
+- `@shipglows/astro-engine/content` : helpers Astro (`astro:content`), à importer dans les pages et les endpoints ;
+- `@shipglows/astro-engine/content/model` : module Node pur, sans dépendance Astro (`astro.config.mjs`, scripts, outils). Il dépend de `yaml`.
+
+```ts
+// src/lib/content.ts : une instance par site, racine passée explicitement
+import { createContentSite } from "@shipglows/astro-engine/content";
+
+export const content = createContentSite({ siteRoot: process.cwd() });
+// Options : siteRoot (obligatoire), ttlMs (défaut 1500 ms, durée de réutilisation du modèle en dev)
+```
+
+Helpers renvoyés par `createContentSite` : `loadContentModel`, `articlePath`, `topicPath`, `topicLabel`, `topicCrumbs`, `pillarOf`, `homePath`, `getPublishedArticles`, `getHubIntro`, `getTopicArticles`, `getSubTopics`, `getLiveTopics`, `getLivePillars`, `getArticleAlternates`, `contentStaticPaths`. Utilitaires sans racine : `articleLocale`, `articleSlug`.
+
+Une route par locale, chacune reprenant les chemins de sa locale (`props` porte `kind`, `locale`, `entry` ou `topicId`) :
+
+```astro
+---
+// src/pages/[...path].astro (locale par défaut, sans préfixe) : extrait
+import { content } from "../lib/content";
+export async function getStaticPaths() {
+  return content.contentStaticPaths("fr");
+}
+const { kind, locale, entry, topicId } = Astro.props;
+---
+```
+
+La locale secondaire vit dans `src/pages/en/[...path].astro` avec `contentStaticPaths("en")`.
+
+### Manifeste `.shipglows.content.json`
+
+À la racine du site. Sans ce fichier, le site ne suit pas le modèle et les outils le signalent comme non conforme.
+
+```json
+{
+  "schema": "shipglows-content/v1",
+  "locales": ["fr", "en"],
+  "defaultLocale": "fr",
+  "prefixDefaultLocale": false,
+  "sourceLocale": "fr"
+}
+```
+
+- `schema` doit valoir `shipglows-content/v1` ; `defaultLocale` doit figurer dans `locales`.
+- `prefixDefaultLocale` : `false` pour une locale par défaut sans préfixe d'URL.
+- `sourceLocale` : locale d'écriture d'origine ; déclarée par la doctrine, non lue par le modèle.
+
+Chemins fixes, non configurables : `src/content/articles/<locale>/<slug>.md`, `src/content/taxonomy.yaml`, `src/content/redirects.json`.
+
+### Collection `articles`
+
+Le site la déclare dans `src/content.config.ts` (le schéma Zod reste dans le site ; le kit ne le fournit pas). Champs :
+
+- requis : `title`, `description`, `topic` (id d'un nœud de la taxonomie), `translationKey`, `publishDate` ;
+- optionnels : `updatedDate` (pilote le tri et `lastmod`), `tags`, `draft` (masque l'entrée partout), `hubFor` (id d'un nœud : introduction longue du hub, fichier nommé comme le slug du nœud), `image`, `imageAlt` ;
+- interdits, car portés par le chemin ou la taxonomie : `slug`, `locale`, `category`, `categories`, `section`, `permalink`, `url`, `parent`, `date`, `pubDate` (`FORBIDDEN_FIELDS`).
+
+Le nom de la collection est toujours `articles`. Un fichier dont le nom commence par `_` n'est pas chargé. Aucun sous-dossier sous une locale.
+
+`taxonomy.yaml` : une liste de nœuds `{ id, parent?, labels: { <locale>: { slug, title, description } } }`. Profondeur 4 niveaux au plus, pas de nœud fourre-tout (`autres`, `divers`, `misc`, `other`), slugs uniques par locale entre articles et nœuds.
+
+Redirections : `src/content/redirects.json`, liste `{ from, to, date }`, jamais effacée. `loadRedirects(siteRoot)` la transforme en redirections 301.
+
+### Wikilinks
+
+`[[slug]]`, `[[slug|texte]]`, `[[slug#ancre]]` sont résolus dans la locale du document, vers un article ou un nœud. Un lien vers un slug inconnu fait échouer une page publiée et produit un avertissement dans un brouillon. Brancher `createWikilinkPlugin(loadModel)` (mdast, Sätteri) dans la configuration Markdown du site, avec `features.wikilinks` activé ; `loadModel = createContentModel(siteRoot)`.
+
+### Endpoint `/content-graph.json`
+
+Le site expose le graphe, pré-rendu et sans brouillons :
+
+```ts
+// src/pages/content-graph.json.ts
+import { buildContentGraph } from "@shipglows/astro-engine/content";
+import { content } from "../lib/content";
+
+export const prerender = true;
+export function GET() {
+  return Response.json(buildContentGraph(content.loadContentModel()));
+}
+```
+
+Schéma `shipglows-content-graph/v1` : `{ schema, nodes: [{ id, kind, locale, title, topic, url }], edges: [{ from, to, kind }] }`. Types de nœud : `article`, `topic`. Types d'arête : `link` (wikilink), `topic` (article vers son nœud), `parent` (nœud vers son parent), `translation` (versions d'une même `translationKey`).
+
 ## Installation dans un site
 
 Dépendance git figée sur un commit (fonctionne sur Vercel) :

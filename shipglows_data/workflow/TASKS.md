@@ -8,6 +8,7 @@
 - [ ] `legal`: adopt in beatglows, claiire, communityglows, contentglows, gocharbon, notefinderz, replayglows, shipglows_app, bestfriedchicken, jarretelacoke; drop the home-made `LegalNotice.astro` in communityglows, replayglows, shipglows_app, contentglows. Data divergence: replayglows writes « 4 Quai Juin », the others « quai ».
 - [ ] `breadcrumbs`: adopt in beatglows (per-page `BreadcrumbList` in `formation/[module]`) and jarretelacoke (`navigation/Breadcrumbs.astro` + part D of `SchemaOrg.astro`, two label tables to merge), removing each site's own `BreadcrumbList` JSON-LD. Done: gocharbon.
 - [ ] `i18n`: migrate gocharbon (French back to unprefixed URLs, ~500 files incl. content links; awaiting operator go). Verify bestfriedchicken on its dev server once `site/.shipglows.backend.json` exists. After the engine push, replace the `link:`/`file:` dependency by a pinned commit in the six migrated sites.
+- [ ] `content` (0.7.0): adopt in contentglows once the engine is pushed (operator approval): replace `site/src/lib/content-model/` by `@shipglows/astro-engine/content` and `/content/model`, then delete the local copy; then migrate the next site of the content-tree migration table (shipglows_app, gocharbon, claiire, commandglows, communityglows, replayglows, dreamglows). The Zod `articles` schema stays in each site.
 - [ ] `base.css` / `icons`: adopt in every site, dropping each site's own Inter/Cal Sans files and `@font-face`, Google Fonts links, scrollbar CSS and direct Lucide imports for base meanings.
 
 ## Done
