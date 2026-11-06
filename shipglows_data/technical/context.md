@@ -66,3 +66,7 @@ data and, when useful, an `.astro` component.
   for `ThemeScript`, and `alternates` in the shape produced by `i18n`.
 - `breadcrumbs` owns `BreadcrumbList` JSON-LD: a site adopting it removes its
   own, and `legal` leaves JSON-LD to it.
+
+## Consumers (2026-11-06)
+
+No site depends on the old `@shipglows/astro-engine` pin anymore. `ui`: claiire, contentglows, dianedefores, jarretelacoke, beatglows, bestfriedchicken, communityglows, notefinderz, replayglows, shipglows_app. `seo`: beatglows, bestfriedchicken, claiire, communityglows, gocharbon, jarretelacoke, notefinderz, shipglows_app. `i18n`: bestfriedchicken, communityglows, dianedefores, jarretelacoke, notefinderz, replayglows. `analytics`: communityglows. `email`: none. `content`: contentglows, shipglows_app, replayglows, communityglows, dreamglows, claiire, commandglows. Sites add `vite.server.fs.allow` for the engine folder when its fonts return 403.
