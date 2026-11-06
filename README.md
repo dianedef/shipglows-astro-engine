@@ -1,4 +1,15 @@
-# @shipglows/astro-engine
+# shipglows-astro (paquets Astro partagés)
+
+Monorepo pnpm de petits paquets, un par préoccupation (2026-11-06, remplace le paquet unique `@shipglows/astro-engine`). Un site ne déclare que les paquets dont il a besoin.
+
+| Paquet | Contenu |
+| --- | --- |
+| `@shipglows/astro-ui` | `/theme`, `/icons`, `/fonts.css`, `/base.css` |
+| `@shipglows/astro-seo` | `/breadcrumbs`, `/bio`, `/legal` |
+| `@shipglows/astro-i18n` | convention d'URL, hreflang, `LanguageSelector.astro` |
+| `@shipglows/astro-content` | modèle de contenu (`.`, `/model`) |
+| `@shipglows/astro-analytics` | mesure d'audience et opposition |
+| `@shipglows/astro-email` | inscription et client du service email |
 
 Logique partagée **sans style** pour les sites Astro ShipGlows. Chaque site garde son HTML, sa mise en page et son thème visuel. Seules exceptions, à importer au choix : les polices, les barres de défilement et les icônes de base, pour que tous les sites se ressemblent sur ces points.
 
@@ -14,7 +25,7 @@ Le CSS reste dans le site : `:root[data-site-theme="gold"][data-site-mode="light
 
 ```ts
 // src/theme.config.ts
-import { defineThemeConfig } from "@shipglows/astro-engine/theme";
+import { defineThemeConfig } from "@shipglows/astro-ui/theme";
 
 export const themeConfig = defineThemeConfig({
   storagePrefix: "monsite",
@@ -27,8 +38,8 @@ export const themeConfig = defineThemeConfig({
 
 ```astro
 ---
-import ThemeScript from "@shipglows/astro-engine/theme/ThemeScript.astro";
-import { themeAttributes } from "@shipglows/astro-engine/theme";
+import ThemeScript from "@shipglows/astro-ui/theme/ThemeScript.astro";
+import { themeAttributes } from "@shipglows/astro-ui/theme";
 import { themeConfig } from "../theme.config";
 ---
 <html {...themeAttributes(themeConfig)}>
@@ -41,7 +52,7 @@ import { themeConfig } from "../theme.config";
 <button type="button" data-theme-axis="mode" data-theme-toggle data-theme-pressed="light">…</button>
 
 <script>
-  import { bindThemeControls } from "@shipglows/astro-engine/theme/client";
+  import { bindThemeControls } from "@shipglows/astro-ui/theme/client";
   import { themeConfig } from "../theme.config";
   bindThemeControls(themeConfig);
 </script>
@@ -59,7 +70,7 @@ HTML accessible (`aria-pressed`, nom accessible, focus visible), icônes synchro
 
 ```astro
 ---
-import ThemeToggle from "@shipglows/astro-engine/theme/ThemeToggle.astro";
+import ThemeToggle from "@shipglows/astro-ui/theme/ThemeToggle.astro";
 import { themeConfig } from "../theme.config";
 ---
 <ThemeToggle config={themeConfig} label="Mode sombre" class="site-theme-toggle">
@@ -100,7 +111,7 @@ Un seul tableau d'étapes produit le HTML visible et le JSON-LD `BreadcrumbList`
 
 ```astro
 ---
-import Breadcrumbs from "@shipglows/astro-engine/breadcrumbs/Breadcrumbs.astro";
+import Breadcrumbs from "@shipglows/astro-seo/breadcrumbs/Breadcrumbs.astro";
 ---
 <!-- Liste explicite : la dernière étape est la page courante (aria-current="page"), son href est facultatif -->
 <Breadcrumbs items={[{ label: "Accueil", href: "/" }, { label: "Formation", href: "/formation/" }, { label: mod.title }]} />
@@ -110,8 +121,8 @@ Génération depuis l'URL (un segment = une étape, lien = chemin cumulé) :
 
 ```astro
 ---
-import Breadcrumbs from "@shipglows/astro-engine/breadcrumbs/Breadcrumbs.astro";
-import { breadcrumbsFromPath } from "@shipglows/astro-engine/breadcrumbs";
+import Breadcrumbs from "@shipglows/astro-seo/breadcrumbs/Breadcrumbs.astro";
+import { breadcrumbsFromPath } from "@shipglows/astro-seo/breadcrumbs";
 
 const items = breadcrumbsFromPath(Astro.url.pathname, {
   home: { label: "Accueil", href: localizePath("/", locale) }, // false pour ne pas l'ajouter
@@ -136,7 +147,7 @@ Sans séparateur, rien n'est inséré : le site le dessine en CSS (`.sg-breadcru
 Pour un JSON-LD regroupé ailleurs (ex. dans `<head>`), passer `jsonLd={false}` et utiliser les helpers :
 
 ```ts
-import { breadcrumbJsonLd, serializeJsonLd } from "@shipglows/astro-engine/breadcrumbs";
+import { breadcrumbJsonLd, serializeJsonLd } from "@shipglows/astro-seo/breadcrumbs";
 
 const schema = breadcrumbJsonLd(items, { site: Astro.site, currentUrl: Astro.url });
 // <script type="application/ld+json" set:html={serializeJsonLd(schema)} />
@@ -152,7 +163,7 @@ Page « link-in-bio » autonome (document HTML complet, sans le layout du site) 
 
 ```ts
 // src/data/bio.ts
-import { defineBioLinks } from "@shipglows/astro-engine/bio";
+import { defineBioLinks } from "@shipglows/astro-seo/bio";
 
 export const bio = defineBioLinks({
   links: [
@@ -169,7 +180,7 @@ export const bio = defineBioLinks({
 ```astro
 ---
 // src/pages/bio.astro
-import BioPage from "@shipglows/astro-engine/bio/BioPage.astro";
+import BioPage from "@shipglows/astro-seo/bio/BioPage.astro";
 import { bio } from "../data/bio";
 ---
 <BioPage
@@ -204,7 +215,7 @@ Mentions obligatoires (LCEN, art. 6-III) : éditeur, direction de la publication
 
 ```ts
 // src/config/legal.ts
-import { defineLegalIdentity, telHref, vercelHost } from "@shipglows/astro-engine/legal";
+import { defineLegalIdentity, telHref, vercelHost } from "@shipglows/astro-seo/legal";
 
 export const legalIdentity = defineLegalIdentity({
   siteName: "MonSite",
@@ -224,7 +235,7 @@ export const legalIdentity = defineLegalIdentity({
 
 ```astro
 ---
-import LegalNotice from "@shipglows/astro-engine/legal/LegalNotice.astro";
+import LegalNotice from "@shipglows/astro-seo/legal/LegalNotice.astro";
 import { legalIdentity } from "../config/legal";
 ---
 <LegalNotice identity={legalIdentity} locale="fr" privacyHref="/confidentialite" class="legal-content">
@@ -256,7 +267,7 @@ Une seule convention d'URL pour tous les sites ; un site ne règle que ses langu
 
 ```ts
 // src/i18n.config.ts
-import { defineI18nConfig } from "@shipglows/astro-engine/i18n";
+import { defineI18nConfig } from "@shipglows/astro-i18n";
 
 export const i18n = defineI18nConfig({
   locales: { en: {}, fr: { intl: "fr-BE" } },  // options : label, ogLocale, intl
@@ -273,15 +284,15 @@ export const i18n = defineI18nConfig({
 
 ```ts
 // astro.config.mjs : 301 des URL legacy
-import { astroRedirects } from "@shipglows/astro-engine/i18n";
+import { astroRedirects } from "@shipglows/astro-i18n";
 import { i18n } from "./src/i18n.config";
 export default defineConfig({ redirects: { ...astroRedirects(i18n) } });
 ```
 
 ```astro
 ---
-import LanguageSelector from "@shipglows/astro-engine/i18n/LanguageSelector.astro";
-import { alternates, localeFromPath, localeInfo, localeLinks } from "@shipglows/astro-engine/i18n";
+import LanguageSelector from "@shipglows/astro-i18n/LanguageSelector.astro";
+import { alternates, localeFromPath, localeInfo, localeLinks } from "@shipglows/astro-i18n";
 import { i18n } from "../i18n.config";
 
 const locale = localeFromPath(i18n, Astro.url.pathname);
@@ -327,7 +338,7 @@ Autres options : `published` (langues exposées, ex. `es` en préparation), `unl
 ```ts
 // src/middleware.ts
 import { defineMiddleware } from "astro:middleware";
-import { localeFromPath, localeRedirect, rewritePath } from "@shipglows/astro-engine/i18n";
+import { localeFromPath, localeRedirect, rewritePath } from "@shipglows/astro-i18n";
 import { i18n } from "./i18n.config";
 
 export const onRequest = defineMiddleware((context, next) => {
@@ -353,7 +364,7 @@ Mesure sans bandeau, dans l'exemption de consentement de la CNIL (grille d'auto-
 
 ```astro
 ---
-import Analytics from "@shipglows/astro-engine/analytics/Analytics.astro";
+import Analytics from "@shipglows/astro-analytics/Analytics.astro";
 ---
 <body>
   <slot />
@@ -365,7 +376,7 @@ import Analytics from "@shipglows/astro-engine/analytics/Analytics.astro";
 - Visiteur reconnu 13 mois (identifiant aléatoire first-party, jamais prolongé), session de 30 minutes : nouveaux/fidèles, parcours agrégés, pages qui font revenir.
 - Jamais : chaîne de requête, formulaire, texte saisi, empreinte, rejeu de session ; référent réduit au domaine ; UTM seulement avec consentement.
 - Opposition obligatoire dans la politique de confidentialité : `<AnalyticsOptOut locale="fr" />` (`analytics/AnalyticsOptOut.astro`). La politique doit aussi décrire la mesure.
-- Bandeau (mode consenti, finalité marketing) : appeler `setAnalyticsConsent(true|false)` de `@shipglows/astro-engine/analytics` ; les UTM partent alors avec les pages vues. Choix valable 6 mois.
+- Bandeau (mode consenti, finalité marketing) : appeler `setAnalyticsConsent(true|false)` de `@shipglows/astro-analytics` ; les UTM partent alors avec les pages vues. Choix valable 6 mois.
 - Le domaine du site doit être un domaine de travail vérifié du projet ContentGlows ; remplace le script injecté `/a/s.js`.
 
 ## Contenu (`/content`, `/content/model`)
@@ -374,12 +385,12 @@ Modèle d'arborescence éditoriale partagé : une collection `articles` avec un 
 
 Deux points d'entrée :
 
-- `@shipglows/astro-engine/content` : helpers Astro (`astro:content`), à importer dans les pages et les endpoints ;
-- `@shipglows/astro-engine/content/model` : module Node pur, sans dépendance Astro (`astro.config.mjs`, scripts, outils). Il dépend de `yaml`.
+- `@shipglows/astro-content` : helpers Astro (`astro:content`), à importer dans les pages et les endpoints ;
+- `@shipglows/astro-content/model` : module Node pur, sans dépendance Astro (`astro.config.mjs`, scripts, outils). Il dépend de `yaml`.
 
 ```ts
 // src/lib/content.ts : une instance par site, racine passée explicitement
-import { createContentSite } from "@shipglows/astro-engine/content";
+import { createContentSite } from "@shipglows/astro-content";
 
 export const content = createContentSite({ siteRoot: process.cwd() });
 // Options : siteRoot (obligatoire), ttlMs (défaut 1500 ms, durée de réutilisation du modèle en dev)
@@ -446,7 +457,7 @@ Le site expose le graphe, pré-rendu et sans brouillons :
 
 ```ts
 // src/pages/content-graph.json.ts
-import { buildContentGraph } from "@shipglows/astro-engine/content";
+import { buildContentGraph } from "@shipglows/astro-content";
 import { content } from "../lib/content";
 
 export const prerender = true;
@@ -459,13 +470,9 @@ Schéma `shipglows-content-graph/v1` : `{ schema, nodes: [{ id, kind, locale, ti
 
 ## Installation dans un site
 
-Dépendance git figée sur un commit (fonctionne sur Vercel) :
+Chaque paquet vit dans `packages/<nom>`. En local (aucun site n'est en prod), un site le lit par chemin : `"@shipglows/astro-content": "link:../../shipglows-astro-engine/packages/content"`. Un lien `file:` est utilisé si le gestionnaire refuse `link:` (npm). Le déploiement (git ou registre, tags par paquet) reste à décider. Les anciens imports `@shipglows/astro-engine/<module>` des sites non migrés continuent de pointer le commit épinglé.
 
-```json
-"@shipglows/astro-engine": "git+https://github.com/dianedef/shipglows-astro-engine.git#<commit>"
-```
-
-En développement local, `link:../../shipglows-astro-engine` permet de modifier le kit et le site en même temps.
+Les tests se lancent avec `pnpm test` (`node --test`, module email seulement).
 
 ## Polices et barres de défilement (`/fonts.css`, `/base.css`)
 
@@ -476,7 +483,7 @@ Polices auto-hébergées (OFL), les mêmes que les apps Flutter (`shipglows_them
 
 ```astro
 ---
-import "@shipglows/astro-engine/base.css";
+import "@shipglows/astro-ui/base.css";
 ---
 ```
 
@@ -488,7 +495,7 @@ Un nom par sens (`settings`, `search`, `close`, `quit`…), dessiné par Lucide 
 
 ```astro
 ---
-import Icon from "@shipglows/astro-engine/icons/Icon.astro";
+import Icon from "@shipglows/astro-ui/icons/Icon.astro";
 ---
 <Icon name="settings" />
 <Icon name="help" label="Aide" size={24} />
@@ -503,9 +510,9 @@ Formulaire d'inscription et client du service email central (CommandGlows). Le s
 
 | Import | Contenu | Où |
 | --- | --- | --- |
-| `@shipglows/astro-engine/email/NewsletterSignup.astro` | Formulaire d'inscription (progressive enhancement) | Rendu serveur, script navigateur inclus |
-| `@shipglows/astro-engine/email` | Script navigateur : `initSubscribeForms`, `subscribeMessages`, helpers purs | Navigateur (importé par le composant) |
-| `@shipglows/astro-engine/email/client` | `createCentralEmailClient` : messages de service et séquences | Serveur uniquement (porte un jeton) |
+| `@shipglows/astro-email/NewsletterSignup.astro` | Formulaire d'inscription (progressive enhancement) | Rendu serveur, script navigateur inclus |
+| `@shipglows/astro-email` | Script navigateur : `initSubscribeForms`, `subscribeMessages`, helpers purs | Navigateur (importé par le composant) |
+| `@shipglows/astro-email/client` | `createCentralEmailClient` : messages de service et séquences | Serveur uniquement (porte un jeton) |
 
 ### Nouveau site : formulaire
 
@@ -513,7 +520,7 @@ Variables publiques du site (aucun secret) : `PUBLIC_EMAIL_SUBSCRIBE_URL` (`http
 
 ```astro
 ---
-import NewsletterSignup from "@shipglows/astro-engine/email/NewsletterSignup.astro";
+import NewsletterSignup from "@shipglows/astro-email/NewsletterSignup.astro";
 ---
 <NewsletterSignup
   endpoint={import.meta.env.PUBLIC_EMAIL_SUBSCRIBE_URL ?? ""}
@@ -545,7 +552,7 @@ Les séquences sont enregistrées dans la configuration centrale : le site envoi
 
 ```ts
 // src/pages/api/cron/sequences.ts (serveur uniquement)
-import { createCentralEmailClient, CentralEmailError } from "@shipglows/astro-engine/email/client";
+import { createCentralEmailClient, CentralEmailError } from "@shipglows/astro-email/client";
 
 const client = createCentralEmailClient({
   baseUrl: process.env.CENTRAL_EMAIL_API_URL!, // https://www.commandglows.com

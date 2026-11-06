@@ -28,7 +28,7 @@ next_step: "Update the consumer column when a site adopts or drops a module."
 # Astro Engine Context
 
 Shared logic for the ShipGlows Astro sites. Each module is a sub-path export
-(`@shipglows/astro-engine/<module>`) with a typed `define*()` helper for site
+(`@shipglows/astro-<paquet>/<module>`, depuis le 2026-11-06 : `ui`, `seo`, `i18n`, `content`, `analytics`, `email` dans `packages/`) with a typed `define*()` helper for site
 data and, when useful, an `.astro` component.
 
 ## Conventions
@@ -37,7 +37,7 @@ data and, when useful, an `.astro` component.
   classes; any default rule lives in `:where()` (zero specificity).
 - Data and copy stay in each site; the engine never ships a site's links,
   identity or translations.
-- Sites pin a commit: `git+https://github.com/dianedef/shipglows-astro-engine.git#<commit>`
+- Sites read a package by local path (`link:../../shipglows-astro-engine/packages/<name>`); nothing is in production, publication (git tags or registry) is undecided. Sites not yet relinked keep the old pinned `@shipglows/astro-engine` commit.
   (`link:`/`file:` only for local co-development).
 - Before replacing a site's home-made code, inventory what it does, migrate
   every useful behavior, and report what is dropped and why.
@@ -57,7 +57,7 @@ data and, when useful, an `.astro` component.
 | `fonts` / `base` | `fonts.css`, `base.css` | Self-hosted Inter, Cal Sans and JetBrains Mono with `--sg-font-*` variables (`fonts.css`); `base.css` applies them and thin rounded scrollbars (`--sg-scrollbar-*`). Same fonts as Flutter `shipglows_theme` | 851e66f | `base.css`: beatglows, claiire, communityglows, dianedefores, jarretelacoke; `fonts.css` only: contentglows, notefinderz |
 | `icons` | `icons`, `icons/Icon.astro` | Base icon names shared with Flutter `shipglows_icons` and the menu model, drawn by `@lucide/astro`; accessible `Icon.astro` with per-site overrides | 851e66f | claiire, dianedefores, contentglows (partial) |
 | `email` | `email` (browser script), `email/NewsletterSignup.astro`, `email/client` (server only) | Public signup form posting to the central service (no secret in the browser; progressive enhancement, status from `?subscription=`), and the server client for service messages and sequence pages (idempotency keys, 429 `Retry-After`, budgets, typed errors without addresses or tokens) | ce commit | none yet; DreamGlows, ReplayGlows, ContentGlows and JarreteLaCoke keep local equivalents until they bump the pin |
-| `content` | `content` (`createContentSite`, Astro helpers), `content/model` (Node, no Astro; needs `yaml`) | Content tree model: `articles` collection rules, `taxonomy.yaml` tree, URLs `/<pillar>/<slug>`, breadcrumbs, hubs, wikilinks, redirects, `shipglows-content-graph/v1` graph; manifest `shipglows-content/v1` | ce commit (0.7.0) | none yet; contentglows still runs its local copy (`site/src/lib/content-model/`) until the engine is pushed |
+| `content` | `content` (`createContentSite`, Astro helpers), `content/model` (Node, no Astro; needs `yaml`) | Content tree model: `articles` collection rules, `taxonomy.yaml` tree, URLs `/<pillar>/<slug>`, breadcrumbs, hubs, wikilinks, redirects, `shipglows-content-graph/v1` graph; manifest `shipglows-content/v1` | ce commit (0.7.0) | contentglows, shipglows_app, replayglows, communityglows, dreamglows, claiire, commandglows (2026-11-06, `link:`; thin `site.ts` adapter kept per site) |
 | `analytics` | `analytics` (préférences : opposition, consentement), `analytics/tracker`, `analytics/Analytics.astro`, `analytics/AnalyticsOptOut.astro` | CNIL consent-exempt audience measurement to ContentGlows `/a/collect` (pv/en/cl, 13-month first-party id, no UTM without consent) and the privacy-policy opt-out button | ce commit | communityglows (`file:` link, 2026-10-28) |
 
 ## Cross-Module Contracts
