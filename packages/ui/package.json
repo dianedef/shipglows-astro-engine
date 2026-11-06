@@ -1,0 +1,30 @@
+{
+  "name": "@shipglows/astro-ui",
+  "version": "0.1.0",
+  "description": "Thème, icônes, polices et styles de base communs aux sites Astro ShipGlows.",
+  "private": true,
+  "type": "module",
+  "keywords": [
+    "astro",
+    "astro-component"
+  ],
+  "exports": {
+    "./theme": "./src/theme/index.ts",
+    "./theme/client": "./src/theme/client.ts",
+    "./theme/ThemeScript.astro": "./src/theme/ThemeScript.astro",
+    "./theme/ThemeToggle.astro": "./src/theme/ThemeToggle.astro",
+    "./icons": "./src/icons/index.ts",
+    "./icons/Icon.astro": "./src/icons/Icon.astro",
+    "./fonts.css": "./src/fonts/fonts.css",
+    "./base.css": "./src/base/base.css"
+  },
+  "files": [
+    "src"
+  ],
+  "dependencies": {
+    "@lucide/astro": "^1.30.0"
+  },
+  "peerDependencies": {
+    "astro": ">=5"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "@shipglows/astro-analytics",
+  "version": "0.1.0",
+  "description": "Mesure d'audience exemptée CNIL et bouton d'opposition.",
+  "private": true,
+  "type": "module",
+  "keywords": [
+    "astro",
+    "astro-component"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./tracker": "./src/tracker.ts",
+    "./Analytics.astro": "./src/Analytics.astro",
+    "./AnalyticsOptOut.astro": "./src/AnalyticsOptOut.astro"
+  },
+  "files": [
+    "src"
+  ],
+  "peerDependencies": {
+    "astro": ">=5"
+  }
+}

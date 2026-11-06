@@ -6,7 +6,7 @@ import {
   createCentralEmailClient,
   parseRetryAfter,
   sequenceIdempotencyKey,
-} from "../../src/email/client.ts";
+} from "../src/client.ts";
 
 const TOKEN = "t".repeat(40);
 const BASE = "https://www.commandglows.com";

@@ -1,0 +1,21 @@
+{
+  "name": "@shipglows/astro-i18n",
+  "version": "0.1.0",
+  "description": "Convention d'URL multilingue, hreflang et sélecteur de langue.",
+  "private": true,
+  "type": "module",
+  "keywords": [
+    "astro",
+    "astro-component"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./LanguageSelector.astro": "./src/LanguageSelector.astro"
+  },
+  "files": [
+    "src"
+  ],
+  "peerDependencies": {
+    "astro": ">=5"
+  }
+}

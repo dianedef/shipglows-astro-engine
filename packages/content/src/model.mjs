@@ -1,6 +1,6 @@
 // ShipGlows content tree model (skills/references/content-tree-model.md in ShipGlows).
 // Plain Node module so astro.config.mjs, pages and tools share one implementation.
-// Shipped by @shipglows/astro-engine/content/model; the Astro helpers live in ./site.ts.
+// Shipped by @shipglows/astro-content/model; the Astro helpers live in ./site.ts.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -162,6 +162,18 @@ export function extractWikilinks(body) {
   return [...prose.matchAll(WIKILINK_PATTERN)].map((match) => ({ slug: match[1].trim(), anchor: match[2] ?? '', alias: match[3] ?? null }));
 }
 
+/**
+ * Wikilinks of published pages that point to no article or topic. Astro only logs a Markdown render
+ * error and then serves the page empty with a 200, so the build has to refuse them itself.
+ */
+export function findBrokenWikilinks(model) {
+  return model.articles
+    .filter((article) => !article.draft)
+    .flatMap((article) => extractWikilinks(article.body)
+      .filter((link) => !model.targets.get(article.locale).has(link.slug))
+      .map((link) => `${article.id}: [[${link.slug}]]`));
+}
+
 /** One snapshot of the whole model, reused for a short time so dev edits are picked up. */
 export function createContentModel(siteRoot, { ttlMs = 1500 } = {}) {
   let cached = null;
@@ -223,7 +235,9 @@ export function loadRedirects(siteRoot) {
 /**
  * Sätteri mdast plugin resolving `[[slug]]`, `[[slug|text]]` and `[[slug#anchor]]`
  * within the locale of the document. A link to an unknown slug fails the page,
- * except in a draft, where it is reported and left unresolved.
+ * except in a draft, where it is reported and left unresolved. A link from a
+ * published page to a draft renders as plain text until the draft is published,
+ * so that pages can go live one at a time despite the mesh.
  */
 export function createWikilinkPlugin(loadModel) {
   return {
@@ -241,8 +255,13 @@ export function createWikilinkPlugin(loadModel) {
       const [target, alias] = raw.split('|');
       const [slug, anchor] = target.split('#');
       const resolved = model.targets.get(current.locale).get(slug.trim());
-      if (!resolved || (resolved.draft && !current.draft)) {
-        const message = `${current.id}: wikilink [[${raw}]] does not resolve to a published ${current.locale} article or topic`;
+      if (resolved?.draft && !current.draft) {
+        ctx.report({ message: `${current.id}: wikilink [[${raw}]] waits for a draft, rendered as plain text`, node, severity: 'warning' });
+        ctx.replaceNode(node, { type: 'text', value: alias ?? resolved.title });
+        return;
+      }
+      if (!resolved) {
+        const message = `${current.id}: wikilink [[${raw}]] does not resolve to a ${current.locale} article or topic`;
         if (current.draft) {
           ctx.report({ message, node, severity: 'warning' });
           return;

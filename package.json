@@ -1,48 +1,8 @@
 {
-  "name": "@shipglows/astro-engine",
-  "version": "0.7.0",
-  "description": "Logique partagée pour les sites Astro ShipGlows, plus polices, barres de défilement et icônes de base.",
+  "name": "shipglows-astro",
   "private": true,
-  "type": "module",
-  "keywords": [
-    "astro",
-    "astro-component"
-  ],
-  "exports": {
-    "./theme": "./src/theme/index.ts",
-    "./theme/client": "./src/theme/client.ts",
-    "./theme/ThemeScript.astro": "./src/theme/ThemeScript.astro",
-    "./theme/ThemeToggle.astro": "./src/theme/ThemeToggle.astro",
-    "./breadcrumbs": "./src/breadcrumbs/index.ts",
-    "./breadcrumbs/Breadcrumbs.astro": "./src/breadcrumbs/Breadcrumbs.astro",
-    "./bio": "./src/bio/index.ts",
-    "./bio/BioPage.astro": "./src/bio/BioPage.astro",
-    "./legal": "./src/legal/index.ts",
-    "./legal/LegalNotice.astro": "./src/legal/LegalNotice.astro",
-    "./i18n": "./src/i18n/index.ts",
-    "./i18n/LanguageSelector.astro": "./src/i18n/LanguageSelector.astro",
-    "./fonts.css": "./src/fonts/fonts.css",
-    "./base.css": "./src/base/base.css",
-    "./icons": "./src/icons/index.ts",
-    "./icons/Icon.astro": "./src/icons/Icon.astro",
-    "./email": "./src/email/subscribe.ts",
-    "./email/NewsletterSignup.astro": "./src/email/NewsletterSignup.astro",
-    "./email/client": "./src/email/client.ts",
-    "./analytics": "./src/analytics/index.ts",
-    "./analytics/tracker": "./src/analytics/tracker.ts",
-    "./analytics/Analytics.astro": "./src/analytics/Analytics.astro",
-    "./analytics/AnalyticsOptOut.astro": "./src/analytics/AnalyticsOptOut.astro",
-    "./content": "./src/content/index.ts",
-    "./content/model": "./src/content/model.mjs"
-  },
-  "files": [
-    "src"
-  ],
-  "dependencies": {
-    "@lucide/astro": "^1.30.0",
-    "yaml": "^2"
-  },
-  "peerDependencies": {
-    "astro": ">=5"
+  "description": "Paquets Astro partagés des sites ShipGlows (monorepo pnpm).",
+  "scripts": {
+    "test": "node --test packages/email/tests"
   }
 }

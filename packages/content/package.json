@@ -1,0 +1,24 @@
+{
+  "name": "@shipglows/astro-content",
+  "version": "0.1.0",
+  "description": "Modèle de contenu unifié (articles, taxonomy.yaml, wikilinks, graphe).",
+  "private": true,
+  "type": "module",
+  "keywords": [
+    "astro",
+    "astro-component"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./model": "./src/model.mjs"
+  },
+  "files": [
+    "src"
+  ],
+  "dependencies": {
+    "yaml": "^2"
+  },
+  "peerDependencies": {
+    "astro": ">=5"
+  }
+}

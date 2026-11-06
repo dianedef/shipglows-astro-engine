@@ -9,7 +9,7 @@ import {
   stripSubscribeLanding,
   subscribeMessageKey,
   subscribeMessages,
-} from "../../src/email/subscribe.ts";
+} from "../src/subscribe.ts";
 
 /** Codes publics documentés (contrat central, « Public subscription ») et la clé attendue. */
 const DOCUMENTED = [

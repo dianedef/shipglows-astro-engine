@@ -1,0 +1,22 @@
+{
+  "name": "@shipglows/astro-email",
+  "version": "0.1.0",
+  "description": "Formulaire d'inscription et client du service email central.",
+  "private": true,
+  "type": "module",
+  "keywords": [
+    "astro",
+    "astro-component"
+  ],
+  "exports": {
+    ".": "./src/subscribe.ts",
+    "./NewsletterSignup.astro": "./src/NewsletterSignup.astro",
+    "./client": "./src/client.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "peerDependencies": {
+    "astro": ">=5"
+  }
+}
