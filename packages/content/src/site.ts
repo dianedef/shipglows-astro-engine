@@ -155,6 +155,7 @@ export function createContentSite({ siteRoot, ttlMs }: ContentSiteOptions) {
 
   return {
     loadContentModel,
+    loadStructure,
     articlePath,
     topicPath,
     topicLabel,
