@@ -9,6 +9,7 @@
     "astro-component"
   ],
   "exports": {
+    "./account-deletion/AccountDeletionContent.astro": "./src/account-deletion/AccountDeletionContent.astro",
     "./theme": "./src/theme/index.ts",
     "./theme/client": "./src/theme/client.ts",
     "./theme/ThemeScript.astro": "./src/theme/ThemeScript.astro",
