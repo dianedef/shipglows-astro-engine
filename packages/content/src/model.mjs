@@ -11,6 +11,8 @@ export const TAXONOMY_FILE = 'src/content/taxonomy.yaml';
 export const REDIRECTS_FILE = 'src/content/redirects.json';
 export const MANIFEST_FILE = '.shipglows.content.json';
 export const MAX_TAXONOMY_DEPTH = 4;
+/** Globs a server-rendered site must ship with its functions: the model reads these with `fs` at runtime (e.g. `vercel({ includeFiles: CONTENT_INCLUDE_FILES })`). */
+export const CONTENT_INCLUDE_FILES = [MANIFEST_FILE, TAXONOMY_FILE, REDIRECTS_FILE, `${ARTICLES_DIR}/**/*.md`];
 export const FORBIDDEN_FIELDS = ['slug', 'locale', 'category', 'categories', 'section', 'permalink', 'url', 'parent', 'date', 'pubDate'];
 const CATCH_ALL_SLUGS = new Set(['autres', 'autre', 'divers', 'misc', 'other', 'others']);
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -112,6 +114,8 @@ export function loadArticleIndex(siteRoot, manifest, taxonomy) {
         slug,
         path,
         title: data.title,
+        description: data.description ?? null,
+        sidebarLabel: data.sidebar?.label ?? null,
         topic,
         hubFor: data.hubFor ?? null,
         draft: data.draft === true,

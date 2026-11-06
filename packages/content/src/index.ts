@@ -2,6 +2,7 @@
 // (astro.config.mjs, scripts) import @shipglows/astro-content/model instead,
 // which has no Astro dependency.
 export {
+  CONTENT_INCLUDE_FILES,
   FORBIDDEN_FIELDS,
   articleUrl,
   buildContentGraph,

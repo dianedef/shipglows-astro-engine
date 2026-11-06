@@ -1,5 +1,6 @@
 // Loose types for the plain-JS content model shared with astro.config.mjs and the site index.
 export const FORBIDDEN_FIELDS: string[];
+export const CONTENT_INCLUDE_FILES: string[];
 export function createContentModel(siteRoot: string, options?: { ttlMs?: number }): () => any;
 export function buildContentGraph(model: any): { schema: string; nodes: any[]; edges: any[] };
 export function buildLinkTargets(manifest: any, taxonomy: any, articles: any[]): Map<string, Map<string, any>>;
