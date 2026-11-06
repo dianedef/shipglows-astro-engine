@@ -1,7 +1,8 @@
 ---
 /**
  * Public account deletion page, without its layout. Google Play requires one that
- * works without the app. The site wraps it in its own layout and styles.
+ * works without the app. The site wraps it in its own layout and styles, and adds
+ * what is specific to the product in the default slot.
  */
 interface Props {
   locale: 'fr' | 'en';
@@ -11,47 +12,73 @@ interface Props {
   /** What is erased, in the page's language. */
   erased: string[];
   email: string;
+  /** How the user confirms, when it is not by signing in again. */
+  confirmation?: string;
+  /** The product lets a returning client take a paid access back. */
+  recoverable?: boolean;
+  /** The site's own classes, to dress the page like its other pages. */
+  sectionClass?: string;
+  headingClass?: string;
 }
 
-const { locale, product, appLocation, erased, email } = Astro.props;
+const {
+  locale,
+  product,
+  appLocation,
+  erased,
+  email,
+  confirmation,
+  recoverable = false,
+  sectionClass,
+  headingClass,
+} = Astro.props;
 const fr = locale === 'fr';
 const subject = encodeURIComponent(
   fr ? `Suppression de mon compte ${product}` : `Delete my ${product} account`,
 );
 ---
 
-<section>
-  <h2>{fr ? 'Depuis l’application' : 'From the app'}</h2>
+<section class={sectionClass}>
+  <h2 class={headingClass}>{fr ? 'Depuis l’application' : 'From the app'}</h2>
   <ol>
     <li>{fr ? `Ouvre ${product} et connecte-toi au compte à supprimer.` : `Open ${product} and sign in to the account to delete.`}</li>
     <li>{fr ? `Va dans ${appLocation}.` : `Go to ${appLocation}.`}</li>
     <li>{fr ? 'Choisis « Supprimer mon compte », puis confirme.' : 'Choose “Delete my account”, then confirm.'}</li>
-    <li>{fr ? 'Reconnecte-toi avec le même compte quand on te le demande.' : 'Sign in again with the same account when asked.'}</li>
+    <li>{confirmation ?? (fr ? 'Reconnecte-toi avec le même compte quand on te le demande.' : 'Sign in again with the same account when asked.')}</li>
   </ol>
 </section>
 
-<section>
-  <h2>{fr ? 'Ce qui est effacé' : 'What is erased'}</h2>
+<section class={sectionClass}>
+  <h2 class={headingClass}>{fr ? 'Ce qui est effacé' : 'What is erased'}</h2>
   <ul>
     <li>{fr ? 'Ton compte de connexion.' : 'Your sign-in account.'}</li>
     {erased.map((item) => <li>{item}</li>)}
   </ul>
 </section>
 
-<section>
-  <h2>{fr ? 'Ce que nous gardons' : 'What we keep'}</h2>
+<section class={sectionClass}>
+  <h2 class={headingClass}>{fr ? 'Ce que nous gardons' : 'What we keep'}</h2>
   <p>
     {fr
       ? 'Si tu as payé un accès, nous gardons la preuve de cet achat, sans ton nom ni ton e-mail en clair. Tes comptes sur nos autres produits ne changent pas.'
       : 'If you paid for access, we keep the proof of that purchase, without your name or your email in clear text. Your accounts on our other products do not change.'}
   </p>
+  {recoverable && (
+    <p>
+      {fr
+        ? `Si tu reviens sur ${product} avec la même adresse e-mail vérifiée, l’application te propose de récupérer cet accès. Rien ne se fait sans ton accord.`
+        : `If you come back to ${product} with the same verified email address, the app offers to give you that access back. Nothing happens without your consent.`}
+    </p>
+  )}
 </section>
 
-<section>
-  <h2>{fr ? 'Tu n’as plus accès à l’application ?' : 'No longer have access to the app?'}</h2>
+<section class={sectionClass}>
+  <h2 class={headingClass}>{fr ? 'Tu n’as plus accès à l’application ?' : 'No longer have access to the app?'}</h2>
   <p>
     {fr ? 'Écris-nous depuis l’adresse e-mail de ton compte à ' : 'Email us from your account’s address at '}
     <a href={`mailto:${email}?subject=${subject}`}>{email}</a>.
     {fr ? ' Nous supprimons le compte et te le confirmons.' : ' We delete the account and confirm it to you.'}
   </p>
 </section>
+
+<slot />
