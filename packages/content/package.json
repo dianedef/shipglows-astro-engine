@@ -10,7 +10,8 @@
   ],
   "exports": {
     ".": "./src/index.ts",
-    "./model": "./src/model.mjs"
+    "./model": "./src/model.mjs",
+    "./integration": "./src/integration.mjs"
   },
   "files": [
     "src"

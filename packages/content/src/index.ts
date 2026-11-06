@@ -9,12 +9,17 @@ export {
   buildLinkTargets,
   childNodes,
   createContentModel,
+  createContentStructure,
+  createRemarkWikilinks,
   createWikilinkPlugin,
+  extractWikilinks,
   findBrokenWikilinks,
+  liveTopicIds,
   localePrefix,
   loadRedirects,
   nodePath,
   nodeUrl,
+  rejectForbiddenFields,
   splitFrontmatter,
 } from './model.mjs';
 

@@ -86,6 +86,27 @@ export function articleUrl(manifest, taxonomy, locale, slug, topic) {
   return finishUrl(manifest, `${localePrefix(manifest, locale)}/${pillar.labels[locale].slug}/${slug}`);
 }
 
+/** Forbidden frontmatter check for a collection schema: `.superRefine((data, ctx) => rejectForbiddenFields(data, ctx))`. */
+export function rejectForbiddenFields(data, context) {
+  for (const field of FORBIDDEN_FIELDS) {
+    if (field in data) context.addIssue({ code: 'custom', path: [field], message: `${field} is derived from the file path or the taxonomy; remove it` });
+  }
+}
+
+/** Manifest and taxonomy only, reloaded when one of the two files changes: enough for URLs, labels and crumbs. */
+export function createContentStructure(siteRoot) {
+  let cached = null;
+  let signature = '';
+  return function load() {
+    const next = [MANIFEST_FILE, TAXONOMY_FILE].map((file) => statSync(join(siteRoot, file)).mtimeMs).join(':');
+    if (cached && next === signature) return cached;
+    const manifest = readContentManifest(siteRoot);
+    cached = { manifest, taxonomy: loadTaxonomy(siteRoot, manifest) };
+    signature = next;
+    return cached;
+  };
+}
+
 export function splitFrontmatter(raw) {
   const match = raw.replace(/^﻿/, '').match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
   if (!match) return { data: {}, body: raw };
@@ -130,17 +151,34 @@ export function loadArticleIndex(siteRoot, manifest, taxonomy) {
   return articles;
 }
 
-/** slug -> target, per locale. Taxonomy node slugs and article slugs share one namespace. */
+/** Topics that have a page in this locale: a published article or hub introduction on the node or below it. */
+export function liveTopicIds(taxonomy, articles, locale) {
+  const live = new Set();
+  for (const article of articles) {
+    if (article.draft || article.locale !== locale) continue;
+    for (const node of nodePath(taxonomy, article.topic)) live.add(node.id);
+  }
+  return live;
+}
+
+/**
+ * slug -> target, per locale. Taxonomy node slugs and article slugs share one namespace.
+ * A topic without a page counts as a draft: a published link to it renders as plain text, not a 404.
+ */
 export function buildLinkTargets(manifest, taxonomy, articles) {
   const targets = new Map(manifest.locales.map((locale) => [locale, new Map()]));
-  for (const node of taxonomy.nodes) {
-    for (const locale of manifest.locales) {
-      targets.get(locale).set(node.labels[locale].slug, {
+  for (const locale of manifest.locales) {
+    const live = liveTopicIds(taxonomy, articles, locale);
+    const map = targets.get(locale);
+    for (const node of taxonomy.nodes) {
+      const slug = node.labels[locale].slug;
+      if (map.has(slug)) throw new Error(`Taxonomy nodes ${map.get(slug).id} and ${node.id} share the ${locale} slug ${slug}`);
+      map.set(slug, {
         kind: 'topic',
         id: node.id,
         title: node.labels[locale].title,
         url: nodeUrl(manifest, taxonomy, locale, node.id),
-        draft: false,
+        draft: !live.has(node.id),
       });
     }
   }
@@ -159,11 +197,13 @@ export function buildLinkTargets(manifest, taxonomy, articles) {
 }
 
 const WIKILINK_PATTERN = /\[\[([^\]|#]+)(#[^\]|]*)?(?:\|([^\]]*))?\]\]/g;
+/** In a Markdown table the alias separator is written `\|`: the backslash belongs to neither side. */
+const dropEscape = (text) => text.replace(/\\$/, '');
 
 export function extractWikilinks(body) {
   // Code is not prose: `[[...]]` inside fences or inline code (TOML tables, arrays) is not a link.
   const prose = body.replace(/^(```|~~~)[\s\S]*?^\1/gm, '').replace(/`[^`\n]*`/g, '');
-  return [...prose.matchAll(WIKILINK_PATTERN)].map((match) => ({ slug: match[1].trim(), anchor: match[2] ?? '', alias: match[3] ?? null }));
+  return [...prose.matchAll(WIKILINK_PATTERN)].map((match) => ({ slug: dropEscape(match[1]).trim(), anchor: dropEscape(match[2] ?? ''), alias: match[3] ?? null }));
 }
 
 /**
@@ -178,18 +218,52 @@ export function findBrokenWikilinks(model) {
       .map((link) => `${article.id}: [[${link.slug}]]`));
 }
 
-/** One snapshot of the whole model, reused for a short time so dev edits are picked up. */
+/** Count, size and newest change of the content files: it moves when a file is added, removed or edited. */
+function contentSignature(siteRoot) {
+  let count = 0;
+  let size = 0;
+  let newest = 0;
+  const note = (path) => {
+    const stats = statSync(path);
+    count += 1;
+    size += stats.size;
+    newest = Math.max(newest, stats.mtimeMs);
+    return stats;
+  };
+  note(join(siteRoot, MANIFEST_FILE));
+  note(join(siteRoot, TAXONOMY_FILE));
+  const root = join(siteRoot, ARTICLES_DIR);
+  for (const locale of readdirSync(root)) {
+    const dir = join(root, locale);
+    if (!note(dir).isDirectory()) continue;
+    for (const file of readdirSync(dir)) note(join(dir, file));
+  }
+  return `${count}:${size}:${newest}`;
+}
+
+const normalizePath = (path) => String(path).replaceAll('\\', '/');
+
+/**
+ * One snapshot of the whole model. It is read again only when a content file changed;
+ * that check stats the files, at most once per `ttlMs`, so large sites stay fast and dev edits are picked up.
+ */
 export function createContentModel(siteRoot, { ttlMs = 1500 } = {}) {
   let cached = null;
-  let loadedAt = 0;
+  let signature = '';
+  let checkedAt = 0;
   return function load() {
-    if (cached && Date.now() - loadedAt < ttlMs) return cached;
+    if (cached && Date.now() - checkedAt < ttlMs) return cached;
+    const next = contentSignature(siteRoot);
+    checkedAt = Date.now();
+    if (cached && next === signature) return cached;
     const manifest = readContentManifest(siteRoot);
     const taxonomy = loadTaxonomy(siteRoot, manifest);
     const articles = loadArticleIndex(siteRoot, manifest, taxonomy);
     const targets = buildLinkTargets(manifest, taxonomy, articles);
-    cached = { siteRoot, manifest, taxonomy, articles, targets };
-    loadedAt = Date.now();
+    const byPath = new Map(articles.map((article) => [normalizePath(article.path), article]));
+    cached = { siteRoot, manifest, taxonomy, articles, targets, byPath };
+    signature = next;
+    checkedAt = Date.now();
     return cached;
   };
 }
@@ -201,7 +275,9 @@ export function buildContentGraph(model) {
   const nodes = [];
   const edges = [];
   for (const locale of manifest.locales) {
+    const live = liveTopicIds(taxonomy, articles, locale);
     for (const node of taxonomy.nodes) {
+      if (!live.has(node.id)) continue;
       nodes.push({ id: `${locale}/topic:${node.id}`, kind: 'topic', locale, title: node.labels[locale].title, topic: node.id, url: nodeUrl(manifest, taxonomy, locale, node.id) });
       if (node.parent) edges.push({ from: `${locale}/topic:${node.id}`, to: `${locale}/topic:${node.parent}`, kind: 'parent' });
     }
@@ -253,9 +329,9 @@ export function createWikilinkPlugin(loadModel) {
       if (start === undefined || !ctx.source.startsWith('[[', start)) return;
       const file = ctx.fileURL ? fileURLToPath(ctx.fileURL) : '';
       const model = loadModel();
-      const current = model.articles.find((article) => article.path === file);
+      const current = model.byPath.get(normalizePath(file));
       if (!current) return;
-      const raw = ctx.source.slice(start + 2, end - 2);
+      const raw = ctx.source.slice(start + 2, end - 2).replace('\\|', '|');
       const [target, alias] = raw.split('|');
       const [slug, anchor] = target.split('#');
       const resolved = model.targets.get(current.locale).get(slug.trim());
@@ -279,5 +355,55 @@ export function createWikilinkPlugin(loadModel) {
         ctx.setProperty(node, 'url', url);
       }
     },
+  };
+}
+
+function rewriteWikilinks(parent, article, targets) {
+  const children = [];
+  for (const child of parent.children) {
+    if (child.type === 'link' || child.type === 'code' || child.type === 'inlineCode') {
+      children.push(child);
+    } else if (child.children) {
+      rewriteWikilinks(child, article, targets);
+      children.push(child);
+    } else if (child.type === 'text' && child.value.includes('[[')) {
+      let last = 0;
+      for (const hit of child.value.matchAll(WIKILINK_PATTERN)) {
+        const slug = dropEscape(hit[1]).trim();
+        const anchor = dropEscape(hit[2] ?? '');
+        const alias = hit[3];
+        const target = targets.get(slug);
+        if (!target && !article.draft) throw new Error(`${article.id}: wikilink [[${slug}]] does not resolve to a ${article.locale} article or topic`);
+        if (!target) {
+          console.warn(`${article.id}: wikilink [[${slug}]] does not resolve to a ${article.locale} article or topic`);
+          continue;
+        }
+        if (hit.index > last) children.push({ type: 'text', value: child.value.slice(last, hit.index) });
+        if (target.draft && !article.draft) {
+          console.warn(`${article.id}: wikilink [[${slug}]] waits for a draft, rendered as plain text`);
+          children.push({ type: 'text', value: alias ?? target.title });
+        } else {
+          children.push({ type: 'link', url: `${target.url}${anchor}`, title: null, children: [{ type: 'text', value: alias ?? target.title }] });
+        }
+        last = hit.index + hit[0].length;
+      }
+      if (last === 0) children.push(child);
+      else if (last < child.value.length) children.push({ type: 'text', value: child.value.slice(last) });
+    } else {
+      children.push(child);
+    }
+  }
+  parent.children = children;
+}
+
+/**
+ * The same wikilinks for sites on the unified processor, with the same rules as the Sätteri plugin:
+ * `unified({ remarkPlugins: [createRemarkWikilinks(loadModel)] })`. Only text nodes are read, so code is never a link.
+ */
+export function createRemarkWikilinks(loadModel) {
+  return () => (tree, file) => {
+    const model = loadModel();
+    const article = model.byPath.get(normalizePath(file?.path ?? file?.history?.[0] ?? ''));
+    if (article) rewriteWikilinks(tree, article, model.targets.get(article.locale));
   };
 }

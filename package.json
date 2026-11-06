@@ -3,6 +3,6 @@
   "private": true,
   "description": "Paquets Astro partagés des sites ShipGlows (monorepo pnpm).",
   "scripts": {
-    "test": "node --test packages/email/tests"
+    "test": "node --test \"packages/*/tests/*.test.*\""
   }
 }

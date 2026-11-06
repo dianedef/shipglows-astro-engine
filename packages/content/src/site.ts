@@ -6,6 +6,7 @@ import {
   articleUrl,
   childNodes,
   createContentModel,
+  createContentStructure,
   localePrefix,
   nodePath,
   nodeUrl,
@@ -45,9 +46,11 @@ function revisionDate(entry: ArticleEntry): number {
  */
 export function createContentSite({ siteRoot, ttlMs }: ContentSiteOptions) {
   const loadContentModel = createContentModel(siteRoot, { ttlMs });
+  // URLs, labels and crumbs need no article: large sites must not read them all for a path.
+  const loadStructure = createContentStructure(siteRoot);
 
   function articlePath(entry: ArticleEntry): string {
-    const { manifest, taxonomy } = loadContentModel();
+    const { manifest, taxonomy } = loadStructure();
     const locale = articleLocale(entry);
     return entry.data.hubFor
       ? nodeUrl(manifest, taxonomy, locale, entry.data.hubFor)
@@ -55,17 +58,17 @@ export function createContentSite({ siteRoot, ttlMs }: ContentSiteOptions) {
   }
 
   function topicPath(locale: Locale, topicId: string): string {
-    const { manifest, taxonomy } = loadContentModel();
+    const { manifest, taxonomy } = loadStructure();
     return nodeUrl(manifest, taxonomy, locale, topicId);
   }
 
   function topicLabel(locale: Locale, topicId: string) {
-    return loadContentModel().taxonomy.byId.get(topicId).labels[locale] as { slug: string; title: string; description: string };
+    return loadStructure().taxonomy.byId.get(topicId).labels[locale] as { slug: string; title: string; description: string };
   }
 
   /** Taxonomy trail from the pillar down to the topic itself. */
   function topicCrumbs(locale: Locale, topicId: string): Crumb[] {
-    const { manifest, taxonomy } = loadContentModel();
+    const { manifest, taxonomy } = loadStructure();
     return nodePath(taxonomy, topicId).map((node: any) => ({
       label: node.labels[locale].title,
       url: nodeUrl(manifest, taxonomy, locale, node.id),
@@ -73,11 +76,11 @@ export function createContentSite({ siteRoot, ttlMs }: ContentSiteOptions) {
   }
 
   function pillarOf(topicId: string): string {
-    return nodePath(loadContentModel().taxonomy, topicId)[0].id;
+    return nodePath(loadStructure().taxonomy, topicId)[0].id;
   }
 
   function homePath(locale: Locale): string {
-    const prefix = localePrefix(loadContentModel().manifest, locale);
+    const prefix = localePrefix(loadStructure().manifest, locale);
     return prefix || '/';
   }
 
@@ -93,7 +96,7 @@ export function createContentSite({ siteRoot, ttlMs }: ContentSiteOptions) {
   }
 
   function descendantIds(topicId: string): Set<string> {
-    const { taxonomy } = loadContentModel();
+    const { taxonomy } = loadStructure();
     const ids = new Set<string>([topicId]);
     for (const node of taxonomy.nodes) if (nodePath(taxonomy, node.id).some((ancestor: any) => ancestor.id === topicId)) ids.add(node.id);
     return ids;
@@ -106,19 +109,18 @@ export function createContentSite({ siteRoot, ttlMs }: ContentSiteOptions) {
   }
 
   function getSubTopics(topicId: string | null): string[] {
-    return childNodes(loadContentModel().taxonomy, topicId).map((node: any) => node.id);
+    return childNodes(loadStructure().taxonomy, topicId).map((node: any) => node.id);
   }
 
-  /** Topics that own at least one published article in this locale: only those get a hub page. */
+  /** Topics with a published article or hub introduction on the node or below it: only those get a hub page. */
   async function getLiveTopics(locale: Locale): Promise<string[]> {
-    const articles = await getPublishedArticles(locale);
-    const { taxonomy } = loadContentModel();
-    return taxonomy.nodes
-      .map((node: any) => node.id)
-      .filter((id: string) => {
-        const ids = descendantIds(id);
-        return articles.some((entry) => ids.has(entry.data.topic!));
-      });
+    const entries = await getCollection('articles', (entry) => !entry.data.draft && entry.id.startsWith(`${locale}/`));
+    const { taxonomy } = loadStructure();
+    const live = new Set<string>();
+    for (const entry of entries) {
+      for (const node of nodePath(taxonomy, entry.data.hubFor ?? entry.data.topic!)) live.add(node.id);
+    }
+    return taxonomy.nodes.map((node: any) => node.id).filter((id: string) => live.has(id));
   }
 
   async function getLivePillars(locale: Locale): Promise<string[]> {
@@ -131,14 +133,15 @@ export function createContentSite({ siteRoot, ttlMs }: ContentSiteOptions) {
     const versions = await getCollection('articles', (candidate) => !candidate.data.draft && candidate.data.translationKey === entry.data.translationKey);
     if (versions.length < 2) return { alternateLocales: [] };
     const alternateLocales = versions.map((version) => ({ hrefLang: articleLocale(version), href: articlePath(version) }));
-    const { defaultLocale } = loadContentModel().manifest;
+    const { defaultLocale } = loadStructure().manifest;
     return { alternateLocales, xDefaultUrl: alternateLocales.find((alternate) => alternate.hrefLang === defaultLocale)?.href };
   }
 
   /** Static paths of every article and live hub of a locale, relative to the locale prefix. */
   async function contentStaticPaths(locale: Locale) {
-    const prefix = localePrefix(loadContentModel().manifest, locale);
-    const relative = (url: string) => url.slice(prefix.length + 1);
+    const prefix = localePrefix(loadStructure().manifest, locale);
+    // Astro's rest parameter takes no trailing slash, whatever the site's URL shape.
+    const relative = (url: string) => url.slice(prefix.length + 1).replace(/\/$/, '');
     const articles = (await getPublishedArticles(locale)).map((entry) => ({
       params: { path: relative(articlePath(entry)) },
       props: { kind: 'article', locale, entry } satisfies ContentRouteProps,
