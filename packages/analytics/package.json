@@ -18,6 +18,6 @@
     "src"
   ],
   "peerDependencies": {
-    "astro": ">=5"
+    "astro": "^7"
   }
 }

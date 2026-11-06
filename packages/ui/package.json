@@ -26,6 +26,6 @@
     "@lucide/astro": "^1.30.0"
   },
   "peerDependencies": {
-    "astro": ">=5"
+    "astro": "^7"
   }
 }

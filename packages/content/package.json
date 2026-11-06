@@ -20,6 +20,6 @@
     "yaml": "^2"
   },
   "peerDependencies": {
-    "astro": ">=5"
+    "astro": "^7"
   }
 }

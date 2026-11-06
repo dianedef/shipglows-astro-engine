@@ -11,13 +11,13 @@ importers:
   packages/analytics:
     dependencies:
       astro:
-        specifier: '>=5'
+        specifier: ^7
         version: 7.4.5(yaml@2.9.1)
 
   packages/content:
     dependencies:
       astro:
-        specifier: '>=5'
+        specifier: ^7
         version: 7.4.5(yaml@2.9.1)
       yaml:
         specifier: ^2
@@ -26,19 +26,19 @@ importers:
   packages/email:
     dependencies:
       astro:
-        specifier: '>=5'
+        specifier: ^7
         version: 7.4.5(yaml@2.9.1)
 
   packages/i18n:
     dependencies:
       astro:
-        specifier: '>=5'
+        specifier: ^7
         version: 7.4.5(yaml@2.9.1)
 
   packages/seo:
     dependencies:
       astro:
-        specifier: '>=5'
+        specifier: ^7
         version: 7.4.5(yaml@2.9.1)
 
   packages/ui:
@@ -47,7 +47,7 @@ importers:
         specifier: ^1.30.0
         version: 1.69.0(astro@7.4.5(yaml@2.9.1))
       astro:
-        specifier: '>=5'
+        specifier: ^7
         version: 7.4.5(yaml@2.9.1)
 
 packages:
