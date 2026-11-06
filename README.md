@@ -1,4 +1,4 @@
-# shipglows-astro (paquets Astro partagés)
+# shipglows-astro-engine (paquets Astro partagés)
 
 Monorepo pnpm de petits paquets, un par préoccupation (2026-11-06, remplace le paquet unique `@shipglows/astro-engine`). Un site ne déclare que les paquets dont il a besoin.
 
@@ -393,10 +393,11 @@ Deux points d'entrée :
 import { createContentSite } from "@shipglows/astro-content";
 
 export const content = createContentSite({ siteRoot: process.cwd() });
-// Options : siteRoot (obligatoire), ttlMs (défaut 1500 ms, durée de réutilisation du modèle en dev)
+// Options : siteRoot (obligatoire), ttlMs (défaut 1500 ms, intervalle minimal entre deux vérifications des fichiers ;
+// le modèle n'est relu que si un fichier a changé)
 ```
 
-Helpers renvoyés par `createContentSite` : `loadContentModel`, `articlePath`, `topicPath`, `topicLabel`, `topicCrumbs`, `pillarOf`, `homePath`, `getPublishedArticles`, `getHubIntro`, `getTopicArticles`, `getSubTopics`, `getLiveTopics`, `getLivePillars`, `getArticleAlternates`, `contentStaticPaths`. Utilitaires sans racine : `articleLocale`, `articleSlug`.
+Helpers renvoyés par `createContentSite` : `loadContentModel`, `loadStructure` (manifeste et taxonomie seuls, sans lire les articles), `articlePath`, `topicPath`, `topicLabel`, `topicCrumbs`, `pillarOf`, `homePath`, `getPublishedArticles`, `getHubIntro`, `getTopicArticles`, `getSubTopics`, `getLiveTopics`, `getLivePillars`, `getArticleAlternates`, `contentStaticPaths`. Utilitaires sans racine : `articleLocale`, `articleSlug`.
 
 Une route par locale, chacune reprenant les chemins de sa locale (`props` porte `kind`, `locale`, `entry` ou `topicId`) :
 
@@ -449,7 +450,27 @@ Redirections : `src/content/redirects.json`, liste `{ from, to, date }`, jamais 
 
 ### Wikilinks
 
-`[[slug]]`, `[[slug|texte]]`, `[[slug#ancre]]` sont résolus dans la locale du document, vers un article ou un nœud. Un lien vers un slug inconnu fait échouer une page publiée et produit un avertissement dans un brouillon. Brancher `createWikilinkPlugin(loadModel)` (mdast, Sätteri) dans la configuration Markdown du site, avec `features.wikilinks` activé ; `loadModel = createContentModel(siteRoot)`.
+`[[slug]]`, `[[slug|texte]]`, `[[slug#ancre]]` sont résolus dans la locale du document, vers un article ou un nœud (`\|` est accepté dans un tableau Markdown). Sur une page publiée, un slug inconnu est une erreur ; un brouillon ou un sujet sans page s'affiche en texte brut avec un avertissement. Dans un brouillon, un slug inconnu produit un avertissement.
+
+Brancher le plugin dans le processeur Markdown, avec `loadModel = createContentModel(siteRoot)` :
+
+- Sätteri : `satteri({ features: { wikilinks: true }, mdastPlugins: [createWikilinkPlugin(loadModel)] })` ;
+- unified : `unified({ remarkPlugins: [createRemarkWikilinks(loadModel)] })`.
+
+### Intégration Astro
+
+```js
+// astro.config.mjs
+import { shipglowsContent } from "@shipglows/astro-content/integration";
+
+integrations: [shipglowsContent({ loadModel })]
+```
+
+Astro ne fait que journaliser une erreur de rendu Markdown et sert la page vide en 200 : l'intégration refuse donc le build si une page publiée contient un wikilink cassé. Elle fait aussi utiliser aux paquets l'Astro du site (`vite.resolve.dedupe`), pas la copie à côté d'eux.
+
+Dans le schéma de la collection : `.superRefine((data, context) => rejectForbiddenFields(data, context))`.
+
+Un sujet a une page dès qu'il porte, lui ou un de ses descendants, un article publié ou une introduction `hubFor` publiée, dans la locale concernée. Le graphe ne liste que ces sujets. `shipglows stack scan -Checks` signale un site sans plugin de wikilinks ou sans intégration.
 
 ### Endpoint `/content-graph.json`
 
@@ -470,9 +491,17 @@ Schéma `shipglows-content-graph/v1` : `{ schema, nodes: [{ id, kind, locale, ti
 
 ## Installation dans un site
 
-Chaque paquet vit dans `packages/<nom>`. En local (aucun site n'est en prod), un site le lit par chemin : `"@shipglows/astro-content": "link:../../shipglows-astro-engine/packages/content"`. Un lien `file:` est utilisé si le gestionnaire refuse `link:` (npm). Le déploiement (git ou registre, tags par paquet) reste à décider. Les anciens imports `@shipglows/astro-engine/<module>` des sites non migrés continuent de pointer le commit épinglé.
+Chaque paquet vit dans `packages/<nom>`. Un seul mode, le même que les paquets Flutter d'`app-engine` : un site lit le paquet par chemin vers le dossier voisin, `"@shipglows/astro-content": "link:../../shipglows-astro-engine/packages/content"` (`file:` sous npm). Pas de registre ni de tag.
 
-Les tests se lancent avec `pnpm test` (`node --test`, module email seulement).
+Sur un hôte qui n'a qu'un dépôt (Vercel, CI), `tool/provide-engines.sh` clone le moteur à côté et installe ses dépendances, avant l'installation du site. Dans `vercel.json` :
+
+```json
+"installCommand": "curl -fsSL https://raw.githubusercontent.com/commandglows/astro-engine/main/tool/provide-engines.sh | bash -s -- . && pnpm install"
+```
+
+Le moteur vient de `main` ; un site peut épingler un commit avec une ligne `astro-engine <commit>` dans un fichier `engine-refs` à côté de son `package.json`. Le script clone aussi `app-engine` si `package.json` le lit par chemin. Une modification poussée sur `main` touche donc tous les sites au déploiement suivant : lancer les tests avant de pousser.
+
+Les tests se lancent avec `pnpm test` (`node --test`, paquets `content` et `email`).
 
 ## Polices et barres de défilement (`/fonts.css`, `/base.css`)
 
@@ -610,7 +639,7 @@ Ces sites postent déjà vers le service central avec leurs formulaires locaux. 
 Node 24 (ou 22.18+) lit les `.ts` nativement ; aucun outil de build :
 
 ```
-node --test tests/email/client.test.ts tests/email/subscribe.test.ts
+node --test packages/email/tests/client.test.ts packages/email/tests/subscribe.test.ts
 ```
 
 Couvert : pagination et curseur, clés d'idempotence, 429 et `Retry-After`, budgets et délais, erreurs typées, validation du contenu avant envoi, absence d'adresse et de jeton dans les erreurs, mapping des codes publics, lecture du retour sans JavaScript. Non couvert : le comportement DOM du script et du composant, à vérifier dans un site réel.
